@@ -1,5 +1,5 @@
 import { User } from 'src/user/entities/user.entity';
-import { Work } from 'src/works/entities/work.entity';
+import { Chapter } from 'src/chapter/entities/chapter.entity';
 import {
   Column,
   CreateDateColumn,
@@ -10,13 +10,15 @@ import {
 } from 'typeorm';
 
 @Entity()
-export class BookShelf {
+export class ChapterCheck {
   @PrimaryGeneratedColumn()
   id: number;
-  @ManyToOne(() => User, (user) => user.bookShelves)
+  @ManyToOne(() => User, (user) => user.chapterChecks)
   user: User;
-  @ManyToOne(() => Work, (work) => work.bookShelves)
-  work: Work;
+  @ManyToOne(() => Chapter, (chapter) => chapter.chapterChecks)
+  chapter: Chapter;
+  @Column()
+  status: number;
   @CreateDateColumn()
   createTime: Date;
   @UpdateDateColumn()

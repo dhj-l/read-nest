@@ -8,6 +8,7 @@ import { ChapterModule } from './chapter/chapter.module';
 import { RecordModule } from './record/record.module';
 import { BookShelfModule } from './book_shelf/book_shelf.module';
 import { BookCheckModule } from './book_check/book_check.module';
+import { ChapterCheckModule } from './chapter_check/chapter_check.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { BookCheckModule } from './book_check/book_check.module';
     RecordModule,
     BookShelfModule,
     BookCheckModule,
+    ChapterCheckModule,
   ],
   controllers: [],
   providers: [],

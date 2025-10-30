@@ -14,15 +14,15 @@ import {
 export class Chapter {
   @PrimaryGeneratedColumn()
   id: number;
-  @Column()
+  @Column({ length: 100 })
   name: string;
-  @Column()
+  @Column({ type: 'longtext' })
   content: string;
-  @Column()
+  @Column({ default: 0 })
   order_number: number;
-  @Column()
+  @Column({ default: 0 })
   status: number;
-  @Column()
+  @Column({ default: 0 })
   count: number;
   @ManyToOne(() => Work, (work) => work.chapters)
   work: Work;

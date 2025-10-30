@@ -18,26 +18,26 @@ import {
 export class Work {
   @PrimaryGeneratedColumn()
   id: number;
-  @Column()
+  @Column({ length: 100 })
   title: string;
-  @Column()
+  @Column({ default: 0 })
   count: number;
-  @Column()
+  @Column({ type: 'text', nullable: true })
   description: string;
   @ManyToOne(() => User, (user) => user.works)
   user: User;
   @ManyToOne(() => Category, (category) => category.works)
   category: Category;
-  @OneToMany(() => Chapter, (chapter) => chapter.work)
+  @OneToMany(() => Chapter, (chapter) => chapter.work, { cascade: true, onDelete: 'CASCADE' })
   chapters: Chapter[];
   //书架
-  @OneToMany(() => BookShelf, (book_shelf) => book_shelf.work)
+  @OneToMany(() => BookShelf, (book_shelf) => book_shelf.work, { cascade: true, onDelete: 'CASCADE' })
   bookShelves: BookShelf[];
   //阅读记录
-  @OneToMany(() => Record, (record) => record.work)
+  @OneToMany(() => Record, (record) => record.work, { cascade: true, onDelete: 'CASCADE' })
   records: Record[];
   //审核记录
-  @OneToMany(() => BookCheck, (book_check) => book_check.work)
+  @OneToMany(() => BookCheck, (book_check) => book_check.work, { cascade: true, onDelete: 'CASCADE' })
   bookChecks: BookCheck[];
   @Column()
   status: number;

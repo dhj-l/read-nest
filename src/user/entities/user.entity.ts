@@ -19,31 +19,31 @@ import {
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
-  @Column()
+  @Column({ length: 50, unique: true })
   username: string;
-  @Column()
+  @Column({ length: 255 })
   password: string;
-  @Column()
+  @Column({ length: 100, unique: true })
   email: string;
-  @Column()
+  @Column({ length: 255, nullable: true })
   avatar_url: string;
   @ManyToMany(() => Role, (role) => role.users)
   @JoinTable()
   roles: Role[];
   //作品
-  @OneToMany(() => Work, (work) => work.user)
+  @OneToMany(() => Work, (work) => work.user, { cascade: true, onDelete: 'CASCADE' })
   works: Work[];
   //书架
-  @OneToMany(() => BookShelf, (book_shelf) => book_shelf.user)
+  @OneToMany(() => BookShelf, (book_shelf) => book_shelf.user, { cascade: true, onDelete: 'CASCADE' })
   bookShelves: BookShelf[];
   //阅读记录
-  @OneToMany(() => Record, (record) => record.user)
+  @OneToMany(() => Record, (record) => record.user, { cascade: true, onDelete: 'CASCADE' })
   records: Record[];
   //书籍审核记录
-  @OneToMany(() => BookCheck, (book_check) => book_check.user)
+  @OneToMany(() => BookCheck, (book_check) => book_check.user, { cascade: true, onDelete: 'CASCADE' })
   bookChecks: BookCheck[];
   //章节审核记录
-  @OneToMany(() => ChapterCheck, (chapter_check) => chapter_check.user)
+  @OneToMany(() => ChapterCheck, (chapter_check) => chapter_check.user, { cascade: true, onDelete: 'CASCADE' })
   chapterChecks: ChapterCheck[];
   @CreateDateColumn()
   createTime: Date;

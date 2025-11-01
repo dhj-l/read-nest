@@ -11,12 +11,11 @@ export class UserItcInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(
       map((data) => {
-        console.log('data', data);
-
+        const { password, ...res } = data;
         return {
           code: 200,
           msg: 'success',
-          data,
+          data: res,
         };
       }),
     );

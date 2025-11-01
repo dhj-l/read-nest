@@ -15,6 +15,13 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+export enum UserStatus {
+  /** 正常用户 */
+  ACTIVE = 'active',
+  /** 禁用用户 */
+  DISABLED = 'disabled',
+}
+
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
@@ -23,27 +30,44 @@ export class User {
   username: string;
   @Column({ length: 255 })
   password: string;
-  @Column({ length: 100, unique: true })
+  @Column({ length: 100, unique: true, nullable: true })
   email: string;
-  @Column({ length: 255, nullable: true })
+  @Column({ length: 255, default: '' })
   avatar_url: string;
+  @Column({ type: 'enum', enum: UserStatus, default: UserStatus.ACTIVE })
+  status: UserStatus;
   @ManyToMany(() => Role, (role) => role.users)
   @JoinTable()
   roles: Role[];
   //作品
-  @OneToMany(() => Work, (work) => work.user, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => Work, (work) => work.user, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   works: Work[];
   //书架
-  @OneToMany(() => BookShelf, (book_shelf) => book_shelf.user, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => BookShelf, (book_shelf) => book_shelf.user, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   bookShelves: BookShelf[];
   //阅读记录
-  @OneToMany(() => Record, (record) => record.user, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => Record, (record) => record.user, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   records: Record[];
   //书籍审核记录
-  @OneToMany(() => BookCheck, (book_check) => book_check.user, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => BookCheck, (book_check) => book_check.user, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   bookChecks: BookCheck[];
   //章节审核记录
-  @OneToMany(() => ChapterCheck, (chapter_check) => chapter_check.user, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => ChapterCheck, (chapter_check) => chapter_check.user, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   chapterChecks: ChapterCheck[];
   @CreateDateColumn()
   createTime: Date;

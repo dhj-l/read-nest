@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsString, MinLength, MaxLength, IsEmail, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  MaxLength,
+  IsEmail,
+  IsOptional,
+} from 'class-validator';
 
 export class CreateUserDto {
   @IsNotEmpty({ message: '用户名不能为空' })

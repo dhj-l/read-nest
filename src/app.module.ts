@@ -18,6 +18,8 @@ import { Record } from './record/entities/record.entity';
 import { BookShelf } from './book_shelf/entities/book_shelf.entity';
 import { BookCheck } from './book_check/entities/book_check.entity';
 import { ChapterCheck } from './chapter_check/entities/chapter_check.entity';
+import { RedisModule } from './redis/redis.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -51,6 +53,8 @@ import { ChapterCheck } from './chapter_check/entities/chapter_check.entity';
     BookShelfModule,
     BookCheckModule,
     ChapterCheckModule,
+    RedisModule,
+    EmailModule,
   ],
   controllers: [],
   providers: [],

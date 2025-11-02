@@ -1,26 +1,81 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Like, Repository } from 'typeorm';
+import { Role } from './entities/role.entity';
+import { type FindAllRoleDto } from './type/type';
+import { UserStatus } from 'src/user/entities/user.entity';
 
 @Injectable()
 export class RoleService {
-  create(createRoleDto: CreateRoleDto) {
-    return 'This action adds a new role';
+  constructor(
+    @InjectRepository(Role) private roleRepository: Repository<Role>,
+  ) {}
+  async create(createRoleDto: CreateRoleDto) {
+    const role = this.roleRepository.create(createRoleDto);
+    return await this.roleRepository.save(role);
   }
 
-  findAll() {
-    return `This action returns all role`;
+  async findAll(findAllRoleDto: FindAllRoleDto) {
+    const { name = '', page = 1, pageSize = 10 } = findAllRoleDto;
+    const [roles, total] = await this.roleRepository.findAndCount({
+      where: {
+        name: Like(`%${name}%`),
+      },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+    return {
+      roles,
+      total,
+      page,
+      pageSize,
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} role`;
+  async findOne(id: number) {
+    return await this.roleRepository.findOne({
+      select: {
+        id: true,
+        name: true,
+        value: true,
+        users: {
+          id: true,
+          username: true,
+          email: true,
+          avatar_url: true,
+        },
+        createTime: true,
+        updateTime: true,
+      },
+      where: {
+        id,
+        users: {
+          status: UserStatus.ACTIVE,
+        },
+      },
+      relations: ['users'],
+    });
   }
 
-  update(id: number, updateRoleDto: UpdateRoleDto) {
-    return `This action updates a #${id} role`;
+  async update(id: number, updateRoleDto: UpdateRoleDto) {
+    return await this.roleRepository.update(id, updateRoleDto);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} role`;
+  async remove(id: number) {
+    const role = await this.roleRepository.findOne({
+      where: {
+        id,
+      },
+      relations: ['users'],
+    });
+    if (!role) {
+      throw new BadRequestException('角色不存在');
+    }
+    if (role.users.length > 0) {
+      throw new BadRequestException('该角色下有用户，不能删除');
+    }
+    return await this.roleRepository.delete(id);
   }
 }

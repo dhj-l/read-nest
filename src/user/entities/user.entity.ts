@@ -28,6 +28,10 @@ export class User {
   id: number;
   @Column({ length: 50, unique: true })
   username: string;
+  @Column({ default: '' })
+  disabled_name: string;
+  @Column({ default: '' })
+  disabled_time: string;
   @Column({ length: 255 })
   password: string;
   @Column({ length: 100, unique: true, nullable: true })

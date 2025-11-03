@@ -28,7 +28,16 @@ export class UserService {
   async findAll(query: FindUser) {
     const { username = '', page = 1, pageSize = 10 } = query;
     const [users, total] = await this.userRepository.findAndCount({
-      select: ['id', 'username', 'email', 'avatar_url', 'status', 'roles'],
+      select: [
+        'id',
+        'username',
+        'email',
+        'avatar_url',
+        'status',
+        'roles',
+        'createTime',
+        'updateTime',
+      ],
       where: {
         username: Like(`%${username}%`),
         status: UserStatus.ACTIVE,

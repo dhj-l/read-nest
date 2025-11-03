@@ -9,13 +9,15 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true, // 自动去除非白名单属性
-      forbidNonWhitelisted: true, // 禁止非白名单属性
+      // forbidNonWhitelisted: true, // 禁止非白名单属性
       transform: true, // 自动类型转换
       transformOptions: {
         enableImplicitConversion: true,
       },
     }),
   );
+
+  app.enableCors();
 
   app.setGlobalPrefix('api/v1');
   await app.listen(process.env.PORT ?? 3000);

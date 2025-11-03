@@ -46,7 +46,9 @@ export class UserController {
       return await this.userService.create(createUserDto);
     } catch (error) {
       const { message } = error;
-      throw new ConflictException(message || '用户名或邮箱已存在');
+      throw new ConflictException(
+        message.length > 10 ? '用户名或邮箱已存在' : message,
+      );
     }
   }
   //查询所有用户

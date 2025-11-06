@@ -99,6 +99,17 @@ export class UserController {
       throw new ConflictException(response?.message || '封禁用户失败');
     }
   }
+  //解封用户
+  @Patch('/unblock/:id')
+  @UseGuards(AuthGuard)
+  async unblock(@Param('id', ParseIntPipe) id: number) {
+    try {
+      return await this.userService.unblock(id);
+    } catch (error) {
+      const { response } = error;
+      throw new ConflictException(response?.message || '解封用户失败');
+    }
+  }
   //给用户添加角色
   @Post('/role/:id')
   @UseGuards(AuthGuard)

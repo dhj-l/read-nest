@@ -26,7 +26,12 @@ export class UserService {
   }
 
   async findAll(query: FindUser) {
-    const { username = '', page = 1, pageSize = 10 } = query;
+    const {
+      username = '',
+      page = 1,
+      pageSize = 10,
+      status = UserStatus.ACTIVE,
+    } = query;
     const [users, total] = await this.userRepository.findAndCount({
       select: [
         'id',
@@ -40,7 +45,7 @@ export class UserService {
       ],
       where: {
         username: Like(`%${username}%`),
-        status: UserStatus.ACTIVE,
+        status,
       },
       relations: ['roles'],
       skip: (page - 1) * pageSize,
@@ -95,6 +100,24 @@ export class UserService {
     user.disabled_name = uuidv4();
     return await this.userRepository.save(user);
   }
+  /**
+   * 解封用户
+   */
+  async unblock(id: number) {
+    const user = await this.userRepository.findOne({
+      where: {
+        id,
+        status: UserStatus.DISABLED,
+      },
+    });
+    if (!user) {
+      throw new ConflictException('用户不存在或未被禁用');
+    }
+    user.status = UserStatus.ACTIVE;
+    user.disabled_time = '';
+    user.disabled_name = '';
+    return await this.userRepository.save(user);
+  }
   async addRole(id: number, roleids: string[]) {
     const user = await this.userRepository.findOne({
       where: {
@@ -115,6 +138,7 @@ export class UserService {
       throw new ConflictException('角色不存在');
     }
     user.roles = roles;
+    user.updateTime = new Date(); // 手动更新时间戳
     return await this.userRepository.save(user);
   }
   async findByName(username: string, status: UserStatus) {

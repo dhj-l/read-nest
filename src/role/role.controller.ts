@@ -10,15 +10,18 @@ import {
   UseInterceptors,
   BadRequestException,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { type FindAllRoleDto } from './type/type';
 import { RoleItcInterceptor } from './itc/itc.interceptor';
+import { AuthGuard } from 'src/auth/auth.guard';
 
 @Controller('role')
 @UseInterceptors(RoleItcInterceptor)
+@UseGuards(AuthGuard)
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
@@ -60,7 +63,10 @@ export class RoleController {
     try {
       return await this.roleService.update(id, updateRoleDto);
     } catch (error) {
-      throw new BadRequestException('更新参数错误');
+      const { errno } = error;
+      if (errno === 1062) {
+        throw new BadRequestException('角色值已存在');
+      } else throw new BadRequestException('更新参数错误');
     }
   }
 

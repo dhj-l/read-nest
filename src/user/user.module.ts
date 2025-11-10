@@ -19,5 +19,6 @@ import { jwtConstants } from './constants';
   ],
   controllers: [UserController],
   providers: [UserService, EmailService],
+  exports: [UserService], // 导出 UserService 供其他模块使用
 })
 export class UserModule {}

@@ -15,9 +15,12 @@ export class BookCheck {
   id: number;
   @ManyToOne(() => User, (user) => user.bookChecks)
   user: User;
-  @ManyToOne(() => Work, (work) => work.bookChecks)
+  @ManyToOne(() => Work, (work) => work.bookChecks, {
+    onDelete: 'CASCADE',
+  })
   work: Work;
-  @Column()
+  @Column({ default: 0 })
+  // 0 待审核 1 审核通过 2 审核拒绝
   status: number;
   @CreateDateColumn()
   createTime: Date;

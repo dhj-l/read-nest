@@ -1,11 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { CreateBookCheckDto } from './dto/create-book_check.dto';
 import { UpdateBookCheckDto } from './dto/update-book_check.dto';
+import type { CreateBookCheckType } from './type/type';
+import { InjectRepository } from '@nestjs/typeorm';
+import { BookCheck } from './entities/book_check.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class BookCheckService {
-  create(createBookCheckDto: CreateBookCheckDto) {
-    return 'This action adds a new bookCheck';
+  constructor(
+    @InjectRepository(BookCheck)
+    private bookCheckRepository: Repository<BookCheck>,
+  ) {}
+  async create(createBookCheckDto: CreateBookCheckType) {
+    const bookCheck = this.bookCheckRepository.create(createBookCheckDto);
+    return this.bookCheckRepository.save(bookCheck);
   }
 
   findAll() {

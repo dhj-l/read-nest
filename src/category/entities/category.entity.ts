@@ -3,6 +3,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
+  ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -16,7 +18,8 @@ export class Category {
   name: string;
   @Column()
   description: string;
-  @OneToMany(() => Work, (work) => work.category)
+  @ManyToMany(() => Work, (work) => work.categorys)
+  @JoinTable({ name: 'work_category' })
   works: Work[];
   @CreateDateColumn()
   createTime: Date;

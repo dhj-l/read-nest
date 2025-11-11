@@ -8,6 +8,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -18,7 +20,7 @@ import {
 export class Work {
   @PrimaryGeneratedColumn()
   id: number;
-  @Column({ length: 100 })
+  @Column({ length: 100, unique: true })
   title: string;
   @Column({ default: 0 })
   count: number;
@@ -26,20 +28,35 @@ export class Work {
   description: string;
   @ManyToOne(() => User, (user) => user.works)
   user: User;
-  @ManyToOne(() => Category, (category) => category.works)
-  category: Category;
-  @OneToMany(() => Chapter, (chapter) => chapter.work, { cascade: true, onDelete: 'CASCADE' })
+  @ManyToMany(() => Category, (category) => category.works)
+  @JoinTable({ name: 'work_category' })
+  categorys: Category[];
+  @OneToMany(() => Chapter, (chapter) => chapter.work, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  //章节
   chapters: Chapter[];
   //书架
-  @OneToMany(() => BookShelf, (book_shelf) => book_shelf.work, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => BookShelf, (book_shelf) => book_shelf.work, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   bookShelves: BookShelf[];
   //阅读记录
-  @OneToMany(() => Record, (record) => record.work, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => Record, (record) => record.work, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   records: Record[];
   //审核记录
-  @OneToMany(() => BookCheck, (book_check) => book_check.work, { cascade: true, onDelete: 'CASCADE' })
+  @OneToMany(() => BookCheck, (book_check) => book_check.work, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   bookChecks: BookCheck[];
-  @Column()
+  @Column({ default: 0 })
+  //状态 0 未审核 1 已审核 2 已拒绝
   status: number;
   @Column()
   cover_url: string;

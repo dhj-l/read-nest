@@ -9,12 +9,15 @@ import {
   BadRequestException,
   UseInterceptors,
   UseGuards,
+  Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryItcInterceptor } from './itc/category-itc.interceptor';
 import { AuthGuard } from 'src/auth/auth.guard';
+import type { FindCategoryType } from './type/categoryType';
 
 @Controller('category')
 @UseInterceptors(CategoryItcInterceptor)
@@ -36,25 +39,46 @@ export class CategoryController {
   }
 
   @Get()
-  findAll() {
-    return this.categoryService.findAll();
+  async findAll(@Query() query: FindCategoryType) {
+    const { name = '', page = 1, pageSize = 10 } = query;
+    try {
+      return await this.categoryService.findAll({
+        name,
+        page,
+        pageSize,
+      });
+    } catch (error) {
+      throw new BadRequestException(error.message || '查询分类失败');
+    }
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.categoryService.findOne(+id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    try {
+      return await this.categoryService.findOne(id);
+    } catch (error) {
+      throw new BadRequestException(error.message || '查询分类失败');
+    }
   }
 
   @Patch(':id')
-  update(
-    @Param('id') id: string,
+  async update(
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateCategoryDto: UpdateCategoryDto,
   ) {
-    return this.categoryService.update(+id, updateCategoryDto);
+    try {
+      return await this.categoryService.update(id, updateCategoryDto);
+    } catch (error) {
+      throw new BadRequestException(error.message || '更新分类失败');
+    }
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.categoryService.remove(+id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    try {
+      return await this.categoryService.remove(id);
+    } catch (error) {
+      throw new BadRequestException(error.message || '删除分类失败');
+    }
   }
 }

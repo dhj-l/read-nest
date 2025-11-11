@@ -3,7 +3,8 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from './entities/category.entity';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
+import { FindCategoryType } from './type/categoryType';
 
 @Injectable()
 export class CategoryService {
@@ -20,19 +21,61 @@ export class CategoryService {
     }
   }
 
-  findAll() {
-    return `This action returns all category`;
+  async findAll({ name = '', page = 1, pageSize = 10 }: FindCategoryType) {
+    const [categories, total] = await this.categoryRepository.findAndCount({
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        createTime: true,
+        updateTime: true,
+      },
+      where: {
+        name: Like(`%${name}%`),
+      },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+    return {
+      categories,
+      total,
+      page,
+      pageSize,
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} category`;
+  async findOne(id: number) {
+    const category = await this.categoryRepository.findOne({
+      where: {
+        id,
+      },
+      relations: {
+        works: true,
+      },
+    });
+    if (!category) {
+      throw new BadRequestException('分类不存在');
+    }
+    return category;
   }
 
-  update(id: number, updateCategoryDto: UpdateCategoryDto) {
-    return `This action updates a #${id} category`;
+  async update(id: number, updateCategoryDto: UpdateCategoryDto) {
+    try {
+      return await this.categoryRepository.update(id, updateCategoryDto);
+    } catch (error) {
+      throw new BadRequestException(error.message || '更新分类失败');
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} category`;
+  async remove(id: number) {
+    try {
+      const category = await this.findOne(id);
+      if (category.works.length > 0) {
+        throw new BadRequestException('分类下存在作品，不能删除');
+      }
+      return await this.categoryRepository.delete(id);
+    } catch (error) {
+      throw new BadRequestException(error.message || '删除分类失败');
+    }
   }
 }

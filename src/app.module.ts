@@ -20,6 +20,7 @@ import { BookCheck } from './book_check/entities/book_check.entity';
 import { ChapterCheck } from './chapter_check/entities/chapter_check.entity';
 import { RedisModule } from './redis/redis.module';
 import { EmailModule } from './email/email.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { EmailModule } from './email/email.module';
     ChapterCheckModule,
     RedisModule,
     EmailModule,
+    UploadModule,
   ],
   controllers: [],
   providers: [],

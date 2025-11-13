@@ -1,6 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateWorkDto } from './dto/create-work.dto';
-import { UpdateWorkDto, UpdateWorkStatusDto } from './dto/update-work.dto';
+import {
+  AddCategoryDto,
+  UpdateWorkDto,
+  UpdateWorkStatusDto,
+} from './dto/update-work.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Work, WorkStatus } from './entities/work.entity';
 import {
@@ -178,26 +182,42 @@ export class WorksService {
   async update(id: number, updateWorkDto: UpdateWorkDto) {
     try {
       const work = await this.findOne(id);
-      if (!work) {
-        throw new BadRequestException('作品不存在');
-      }
       await this.workRepository.update(id, updateWorkDto);
       return await this.findOne(id);
     } catch (error) {
       throw new BadRequestException(error.message || '更新作品失败');
     }
   }
-
+  /**
+   * 修改作品状态
+   */
   async updateStatus(id: number, updateWorkStatusDto: UpdateWorkStatusDto) {
     try {
       const work = await this.findOne(id);
-      if (!work) {
-        throw new BadRequestException('作品不存在');
-      }
       work.status = WorkStatus[updateWorkStatusDto.status];
       return await this.workRepository.save(work);
     } catch (error) {
       throw new BadRequestException(error.message || '更新作品状态失败');
+    }
+  }
+  /**
+   * 给书籍添加分类
+   */
+  async addCategory(id: number, addCategoryDto: AddCategoryDto) {
+    try {
+      const work = await this.findOne(id);
+      const categorys = await this.categoryRepository.find({
+        where: {
+          id: In(addCategoryDto.categoryIds),
+        },
+      });
+      if (categorys.length !== addCategoryDto.categoryIds.length) {
+        throw new BadRequestException('部分分类不存在');
+      }
+      work.categorys = categorys;
+      return await this.workRepository.save(work);
+    } catch (error) {
+      throw new BadRequestException(error.message || '添加分类失败');
     }
   }
 }

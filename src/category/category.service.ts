@@ -23,16 +23,10 @@ export class CategoryService {
 
   async findAll({ name = '', page = 1, pageSize = 10 }: FindCategoryType) {
     const [categories, total] = await this.categoryRepository.findAndCount({
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        createTime: true,
-        updateTime: true,
-      },
       where: {
         name: Like(`%${name}%`),
       },
+      relations: ['works'],
       skip: (page - 1) * pageSize,
       take: pageSize,
     });

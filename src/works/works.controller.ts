@@ -17,18 +17,10 @@ import {
 } from '@nestjs/common';
 import { WorksService } from './works.service';
 import { CreateWorkDto } from './dto/create-work.dto';
-import { UpdateWorkDto, UpdateWorkStatusDto } from './dto/update-work.dto';
+import { AddCategoryDto, UpdateWorkDto, UpdateWorkStatusDto } from './dto/update-work.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { UserService } from 'src/user/user.service';
-import {
-  FileTypes,
-  type FindAllWorkType,
-  type UploadResponse,
-} from './type/type';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { v4 as uuidv4 } from 'uuid';
-import { extname } from 'path';
+import { type FindAllWorkType } from './type/type';
 import { WorksInterceptor } from './works.interceptor';
 
 @Controller('works')
@@ -95,41 +87,18 @@ export class WorksController {
       throw new BadRequestException(error.message || '更新作品状态失败');
     }
   }
-  //TODO: 将来移出去作为一个单独的模块
   /**
-   * 上传作品封面
+   * 给书籍添加分类
    */
-  @Post('/upload')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './uploads/works',
-        filename: (req, file, callback) => {
-          const uniqueSuffix = uuidv4() + extname(file.originalname);
-          callback(null, uniqueSuffix);
-        },
-      }),
-      limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB
-      },
-    }),
-  )
-  upload(@UploadedFile() file: Express.Multer.File): UploadResponse {
-    if (!file) {
-      throw new BadRequestException('请上传文件');
+  @Patch('/category/:id')
+  async addCategory(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() addCategoryDto: AddCategoryDto,
+  ) {
+    try {
+      return await this.worksService.addCategory(id, addCategoryDto);
+    } catch (error) {
+      throw new BadRequestException(error.message || '添加分类失败');
     }
-    if (!FileTypes.includes(file.mimetype)) {
-      throw new BadRequestException(
-        '文件类型错误，只允许上传 PNG、JPEG、JPG 格式',
-      );
-    }
-
-    return {
-      filename: file.filename,
-      originalname: file.originalname,
-      size: file.size,
-      mimetype: file.mimetype,
-      url: `/uploads/works/${file.filename}`,
-    };
   }
 }

@@ -11,6 +11,7 @@ import {
   JoinTable,
   ManyToMany,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -50,11 +51,11 @@ export class User {
   })
   works: Work[];
   //书架
-  @OneToMany(() => BookShelf, (book_shelf) => book_shelf.user, {
+  @OneToOne(() => BookShelf, (book_shelf) => book_shelf.user, {
     cascade: true,
     onDelete: 'CASCADE',
   })
-  bookShelves: BookShelf[];
+  bookShelf: BookShelf;
   //阅读记录
   @OneToMany(() => Record, (record) => record.user, {
     cascade: true,

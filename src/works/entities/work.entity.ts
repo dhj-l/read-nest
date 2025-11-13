@@ -15,7 +15,32 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-
+export enum WorkStatus {
+  /**
+   * 全部
+   */
+  ALL = -1,
+  /**
+   * 未上架
+   */
+  UNPUBLISHED = 0,
+  /**
+   * 已上架
+   */
+  PUBLISHED = 1,
+  /**
+   * 已下架
+   */
+  UNLISTED = 2,
+  /**
+   * 连载中
+   */
+  SERIAL = 3,
+  /**
+   * 已完结
+   */
+  ENDED = 4,
+}
 @Entity()
 export class Work {
   @PrimaryGeneratedColumn()
@@ -38,7 +63,7 @@ export class Work {
   //章节
   chapters: Chapter[];
   //书架
-  @OneToMany(() => BookShelf, (book_shelf) => book_shelf.work, {
+  @ManyToMany(() => BookShelf, (book_shelf) => book_shelf.works, {
     cascade: true,
     onDelete: 'CASCADE',
   })
@@ -55,9 +80,9 @@ export class Work {
     onDelete: 'CASCADE',
   })
   bookChecks: BookCheck[];
-  @Column({ default: 0 })
-  //状态 0 未审核 1 已审核 2 已拒绝
-  status: number;
+  @Column({ default: WorkStatus.UNPUBLISHED })
+  //状态 0 未上架 1 已上架 2 已下架 3 连载中 4 已完结
+  status: WorkStatus;
   @Column()
   cover_url: string;
   @CreateDateColumn()

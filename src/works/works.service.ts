@@ -1,11 +1,24 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateWorkDto } from './dto/create-work.dto';
-import { UpdateWorkDto } from './dto/update-work.dto';
+import { UpdateWorkDto, UpdateWorkStatusDto } from './dto/update-work.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Work } from './entities/work.entity';
-import { DataSource, In, Repository } from 'typeorm';
+import { Work, WorkStatus } from './entities/work.entity';
+import {
+  DataSource,
+  In,
+  LessThanOrEqual,
+  Like,
+  MoreThanOrEqual,
+  Repository,
+  Between,
+} from 'typeorm';
 import { Category } from 'src/category/entities/category.entity';
 import { BookCheck } from 'src/book_check/entities/book_check.entity';
+import {
+  CountLevel,
+  CountLevelRanges,
+  type FindAllWorkType,
+} from './type/type';
 
 @Injectable()
 export class WorksService {
@@ -73,19 +86,118 @@ export class WorksService {
     }
   }
 
-  findAll() {
-    return `This action returns all works`;
+  async findAll(query: FindAllWorkType) {
+    try {
+      const {
+        page = 1,
+        pageSize = 10,
+        title = '',
+        username = '',
+        status = WorkStatus.ALL,
+        count = CountLevel.ALL,
+        category_ids = -1,
+        sort = 'DESC',
+      } = query;
+
+      // 构建查询条件
+      const whereConditions: any = {
+        title: Like(`%${title}%`),
+        status: status === WorkStatus.ALL ? undefined : status,
+        user: {
+          username: Like(`%${username}%`),
+        },
+        categorys: {
+          id: category_ids === -1 ? undefined : In(category_ids),
+        },
+      };
+
+      // 处理字数等级查询
+      if (count !== CountLevel.ALL) {
+        const range = CountLevelRanges[count];
+        if (range.max === Infinity) {
+          // 120万字以上
+          whereConditions.count = MoreThanOrEqual(range.min);
+        } else {
+          // 其他区间
+          whereConditions.count = Between(range.min, range.max);
+        }
+      }
+
+      const [works, total] = await this.workRepository.findAndCount({
+        where: whereConditions,
+        order: {
+          id: sort,
+        },
+        relations: ['categorys'],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      });
+      return {
+        works,
+        total,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message || '查询作品失败');
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} work`;
+  async findOne(id: number) {
+    try {
+      const selectOptions = {
+        id: true,
+        title: true,
+        count: true,
+        status: true,
+        description: true,
+        cover_url: true,
+        categorys: {
+          id: true,
+          name: true,
+        },
+        user: {
+          id: true,
+          username: true,
+        },
+      };
+      const work = await this.workRepository.findOne({
+        select: selectOptions,
+        where: {
+          id,
+        },
+        relations: ['categorys', 'user', 'bookChecks', 'chapters'],
+      });
+      if (!work) {
+        throw new BadRequestException('作品不存在');
+      }
+      return work;
+    } catch (error) {
+      throw new BadRequestException(error.message || '查询作品失败');
+    }
   }
 
-  update(id: number, updateWorkDto: UpdateWorkDto) {
-    return `This action updates a #${id} work`;
+  async update(id: number, updateWorkDto: UpdateWorkDto) {
+    try {
+      const work = await this.findOne(id);
+      if (!work) {
+        throw new BadRequestException('作品不存在');
+      }
+      await this.workRepository.update(id, updateWorkDto);
+      return await this.findOne(id);
+    } catch (error) {
+      throw new BadRequestException(error.message || '更新作品失败');
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} work`;
+  async updateStatus(id: number, updateWorkStatusDto: UpdateWorkStatusDto) {
+    try {
+      const work = await this.findOne(id);
+      if (!work) {
+        throw new BadRequestException('作品不存在');
+      }
+      work.status = WorkStatus[updateWorkStatusDto.status];
+      return await this.workRepository.save(work);
+    } catch (error) {
+      throw new BadRequestException(error.message || '更新作品状态失败');
+    }
   }
 }

@@ -7,20 +7,24 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-  Unique,
+  ManyToMany,
+  JoinTable,
+  OneToOne,
 } from 'typeorm';
 
 @Entity()
-@Unique(['user', 'work']) // 确保用户不会重复收藏同一作品
 export class BookShelf {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, (user) => user.bookShelves, { onDelete: 'CASCADE' })
+  @OneToOne(() => User, (user) => user.bookShelf, { onDelete: 'CASCADE' })
   user: User;
 
-  @ManyToOne(() => Work, (work) => work.bookShelves, { onDelete: 'CASCADE' })
-  work: Work;
+  @ManyToMany(() => Work, (work) => work.bookShelves, { onDelete: 'CASCADE' })
+  @JoinTable({
+    name: 'book_shelf_work',
+  })
+  works: Work[];
 
   @Column({
     type: 'tinyint',

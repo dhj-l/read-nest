@@ -30,8 +30,15 @@ export class CategoryService {
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
+
+    // 将works数组转换为数量
+    const categoriesWithCount = categories.map((category) => ({
+      ...category,
+      works: category.works.length,
+    }));
+
     return {
-      categories,
+      categories: categoriesWithCount,
       total,
       page,
       pageSize,

@@ -40,6 +40,10 @@ export enum WorkStatus {
    * 已完结
    */
   ENDED = 4,
+  /**
+   * 审核失败
+   */
+  REJECTED = 5,
 }
 @Entity()
 export class Work {

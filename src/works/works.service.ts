@@ -10,7 +10,6 @@ import { Work, WorkStatus } from './entities/work.entity';
 import {
   DataSource,
   In,
-  LessThanOrEqual,
   Like,
   MoreThanOrEqual,
   Repository,

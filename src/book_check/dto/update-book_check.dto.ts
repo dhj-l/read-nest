@@ -1,4 +1,7 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateBookCheckDto } from './create-book_check.dto';
+import { IsNotEmpty, IsNumber } from 'class-validator';
 
-export class UpdateBookCheckDto extends PartialType(CreateBookCheckDto) {}
+export class UpdateBookCheckDto {
+  @IsNumber({}, { message: '状态必须是数字' })
+  @IsNotEmpty({ message: '状态不能为空' })
+  status: number;
+}

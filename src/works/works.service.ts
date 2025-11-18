@@ -1,10 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateWorkDto } from './dto/create-work.dto';
-import {
-  AddCategoryDto,
-  UpdateWorkDto,
-  UpdateWorkStatusDto,
-} from './dto/update-work.dto';
+import { AddCategoryDto, UpdateWorkDto } from './dto/update-work.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Work, WorkStatus } from './entities/work.entity';
 import {
@@ -98,19 +94,19 @@ export class WorksService {
         username = '',
         status = WorkStatus.ALL,
         count = CountLevel.ALL,
-        category_ids = -1,
+        category_ids = '-1',
         sort = 'DESC',
       } = query;
 
       // 构建查询条件
       const whereConditions: any = {
         title: Like(`%${title}%`),
-        status: status === WorkStatus.ALL ? undefined : status,
+
         user: {
           username: Like(`%${username}%`),
         },
         categorys: {
-          id: category_ids === -1 ? undefined : In(category_ids),
+          id: category_ids === '-1' ? undefined : In(category_ids.split(',')),
         },
       };
 
@@ -125,13 +121,35 @@ export class WorksService {
           whereConditions.count = Between(range.min, range.max);
         }
       }
+      // 处理状态查询
+      if (status !== WorkStatus.ALL) {
+        whereConditions.status = status;
+      }
 
       const [works, total] = await this.workRepository.findAndCount({
+        select: {
+          id: true,
+          title: true,
+          count: true,
+          status: true,
+          description: true,
+          cover_url: true,
+          user: {
+            id: true,
+            username: true,
+          },
+          categorys: {
+            id: true,
+            name: true,
+          },
+          createTime: true,
+          updateTime: true,
+        },
         where: whereConditions,
         order: {
           id: sort,
         },
-        relations: ['categorys'],
+        relations: ['categorys', 'user'],
         skip: (page - 1) * pageSize,
         take: pageSize,
       });
@@ -181,26 +199,26 @@ export class WorksService {
   async update(id: number, updateWorkDto: UpdateWorkDto) {
     try {
       const work = await this.findOne(id);
-      await this.workRepository.update(id, updateWorkDto);
-      return await this.findOne(id);
+
+      // 如果有status字段，直接赋值（前端传入的是数字，但需排除查询用的WorkStatus.ALL）
+      if (
+        updateWorkDto.status !== undefined &&
+        updateWorkDto.status !== WorkStatus.ALL
+      ) {
+        work.status = updateWorkDto.status;
+        delete updateWorkDto.status; // 从DTO中移除，避免冲突
+      }
+
+      // 合并其他更新字段
+      Object.assign(work, updateWorkDto);
+
+      return await this.workRepository.save(work);
     } catch (error) {
       throw new BadRequestException(error.message || '更新作品失败');
     }
   }
   /**
-   * 修改作品状态
-   */
-  async updateStatus(id: number, updateWorkStatusDto: UpdateWorkStatusDto) {
-    try {
-      const work = await this.findOne(id);
-      work.status = WorkStatus[updateWorkStatusDto.status];
-      return await this.workRepository.save(work);
-    } catch (error) {
-      throw new BadRequestException(error.message || '更新作品状态失败');
-    }
-  }
-  /**
-   * 给书籍添加分类
+   * 给书籍设置分类
    */
   async addCategory(id: number, addCategoryDto: AddCategoryDto) {
     try {

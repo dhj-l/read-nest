@@ -17,11 +17,12 @@ import {
 } from '@nestjs/common';
 import { WorksService } from './works.service';
 import { CreateWorkDto } from './dto/create-work.dto';
-import { AddCategoryDto, UpdateWorkDto, UpdateWorkStatusDto } from './dto/update-work.dto';
+import { AddCategoryDto, UpdateWorkDto } from './dto/update-work.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { UserService } from 'src/user/user.service';
 import { type FindAllWorkType } from './type/type';
 import { WorksInterceptor } from './works.interceptor';
+import { WorkStatus } from './entities/work.entity';
 
 @Controller('works')
 @UseGuards(AuthGuard)
@@ -49,6 +50,12 @@ export class WorksController {
   @Get()
   async findAll(@Query() query: FindAllWorkType) {
     try {
+      // 确保status参数正确转换为数字类型
+      if (query.status !== undefined) {
+        query.status = Number(query.status) as WorkStatus;
+      }
+      console.log(query.status, '123');
+
       return await this.worksService.findAll(query);
     } catch (error) {
       throw new BadRequestException(error.message || '查询失败');
@@ -73,18 +80,6 @@ export class WorksController {
       return await this.worksService.update(id, updateWorkDto);
     } catch (error) {
       throw new BadRequestException(error.message || '更新失败');
-    }
-  }
-  //修改书籍状态
-  @Patch('/status/:id')
-  remove(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateWorkStatusDto: UpdateWorkStatusDto,
-  ) {
-    try {
-      return this.worksService.updateStatus(id, updateWorkStatusDto);
-    } catch (error) {
-      throw new BadRequestException(error.message || '更新作品状态失败');
     }
   }
   /**

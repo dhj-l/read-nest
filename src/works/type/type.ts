@@ -1,17 +1,29 @@
 import { WorkStatus } from '../entities/work.entity';
 
 export enum CountLevel {
-  //所有
+  /**
+   * 所有
+   */
   ALL = -1,
-  //0-30万字
+  /**
+   * 0-30万字
+   */
   LEVEL_1 = 1,
-  //30-50万字
+  /**
+   * 30-50万字
+   */
   LEVEL_2 = 2,
-  //50-80万字
+  /**
+   * 50-80万字
+   */
   LEVEL_3 = 3,
-  //80-120万字
+  /**
+   * 80-120万字
+   */
   LEVEL_4 = 4,
-  //120万字以上
+  /**
+   * 120万字以上
+   */
   LEVEL_5 = 5,
 }
 
@@ -36,7 +48,7 @@ export interface FindAllWorkType {
   username?: string;
   status?: WorkStatus;
   count?: CountLevel;
-  category_ids?: number[];
+  category_ids?: string;
   sort?: 'DESC' | 'ASC';
 }
 

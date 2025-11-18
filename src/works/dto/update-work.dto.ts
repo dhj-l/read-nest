@@ -1,7 +1,13 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateWorkDto } from './create-work.dto';
 import { WorkStatus } from '../entities/work.entity';
-import { IsArray, IsNotEmpty, IsNumber, IsString, IsOptional } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  IsOptional,
+} from 'class-validator';
 
 export class UpdateWorkDto extends PartialType(CreateWorkDto) {
   @IsOptional()

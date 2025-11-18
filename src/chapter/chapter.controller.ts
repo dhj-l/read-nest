@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  BadRequestException,
+} from '@nestjs/common';
 import { ChapterService } from './chapter.service';
 import { CreateChapterDto } from './dto/create-chapter.dto';
 import { UpdateChapterDto } from './dto/update-chapter.dto';
@@ -7,9 +17,16 @@ import { UpdateChapterDto } from './dto/update-chapter.dto';
 export class ChapterController {
   constructor(private readonly chapterService: ChapterService) {}
 
-  @Post()
-  create(@Body() createChapterDto: CreateChapterDto) {
-    return this.chapterService.create(createChapterDto);
+  @Post('/:workId')
+  async create(
+    @Body() createChapterDto: CreateChapterDto,
+    @Param('workId', ParseIntPipe) workId: number,
+  ) {
+    try {
+      return await this.chapterService.create(workId, createChapterDto);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   @Get()

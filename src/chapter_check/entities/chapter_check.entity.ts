@@ -9,6 +9,14 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+export enum ChapterCheckStatus {
+  /**待审核 */
+  Pending = 0,
+  /**审核通过 */
+  Approved = 1,
+  /**审核不通过 */
+  Rejected = 2,
+}
 @Entity()
 export class ChapterCheck {
   @PrimaryGeneratedColumn()
@@ -17,8 +25,12 @@ export class ChapterCheck {
   user: User;
   @ManyToOne(() => Chapter, (chapter) => chapter.chapterChecks)
   chapter: Chapter;
-  @Column()
-  status: number;
+  @Column({
+    type: 'enum',
+    enum: ChapterCheckStatus,
+    default: ChapterCheckStatus.Pending,
+  })
+  status: ChapterCheckStatus;
   @CreateDateColumn()
   createTime: Date;
   @UpdateDateColumn()

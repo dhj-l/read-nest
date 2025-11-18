@@ -10,18 +10,32 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+export enum ChapterStatus {
+  /**待审核 */
+  Pending = 0,
+  /**
+   * 已上架
+   */
+  Approved = 1,
+  /**
+   * 已下架
+   */
+  Rejected = 2,
+}
 @Entity()
 export class Chapter {
   @PrimaryGeneratedColumn()
   id: number;
-  @Column({ length: 100 })
+  @Column({ length: 100, unique: true })
   name: string;
   @Column({ type: 'longtext' })
   content: string;
-  @Column({ default: 0 })
-  order_number: number;
-  @Column({ default: 0 })
-  status: number;
+  @Column({
+    type: 'enum',
+    enum: ChapterStatus,
+    default: ChapterStatus.Pending,
+  })
+  status: ChapterStatus;
   @Column({ default: 0 })
   count: number;
   @ManyToOne(() => Work, (work) => work.chapters)

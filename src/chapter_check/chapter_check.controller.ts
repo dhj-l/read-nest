@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { ChapterCheckService } from './chapter_check.service';
 import { CreateChapterCheckDto } from './dto/create-chapter_check.dto';
 import { UpdateChapterCheckDto } from './dto/update-chapter_check.dto';
@@ -23,7 +31,10 @@ export class ChapterCheckController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateChapterCheckDto: UpdateChapterCheckDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateChapterCheckDto: UpdateChapterCheckDto,
+  ) {
     return this.chapterCheckService.update(+id, updateChapterCheckDto);
   }
 

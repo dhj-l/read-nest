@@ -8,7 +8,7 @@ import { config } from 'dotenv';
 async function bootstrap() {
   // 加载环境变量
   config();
-  
+
   const app = await NestFactory.create(AppModule, {});
 
   // 全局验证管道配置

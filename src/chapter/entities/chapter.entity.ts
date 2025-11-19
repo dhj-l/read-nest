@@ -1,3 +1,4 @@
+import { IsIn } from 'class-validator';
 import { ChapterCheck } from 'src/chapter_check/entities/chapter_check.entity';
 import { Work } from 'src/works/entities/work.entity';
 import {
@@ -26,19 +27,16 @@ export enum ChapterStatus {
 export class Chapter {
   @PrimaryGeneratedColumn()
   id: number;
-  @Column({ length: 100, unique: true })
+  @Column({ length: 100 })
   name: string;
   @Column({ type: 'longtext' })
   content: string;
-  @Column({
-    type: 'enum',
-    enum: ChapterStatus,
-    default: ChapterStatus.Pending,
-  })
-  status: ChapterStatus;
+  @Column({ type: 'tinyint', default: ChapterStatus.Pending })
+  @IsIn([ChapterStatus.Pending, ChapterStatus.Approved, ChapterStatus.Rejected])
+  status: number;
   @Column({ default: 0 })
   count: number;
-  @ManyToOne(() => Work, (work) => work.chapters)
+  @ManyToOne(() => Work, (work) => work.chapters, { onDelete: 'CASCADE' })
   work: Work;
   //章节审核记录
   @OneToMany(() => ChapterCheck, (chapter_check) => chapter_check.chapter)

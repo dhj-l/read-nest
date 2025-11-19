@@ -8,14 +8,26 @@ import {
   Delete,
   ParseIntPipe,
   BadRequestException,
+  Query,
+  UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
 import { ChapterService } from './chapter.service';
-import { CreateChapterDto } from './dto/create-chapter.dto';
+import { CreateChapterDto, FindChapterDto } from './dto/create-chapter.dto';
 import { UpdateChapterDto } from './dto/update-chapter.dto';
+import { WorksService } from 'src/works/works.service';
+import { Work } from 'src/works/entities/work.entity';
+import { ChapterInterceptor } from './chapter.interceptor';
+import { AuthGuard } from 'src/auth/auth.guard';
 
 @Controller('chapter')
+@UseGuards(AuthGuard)
+@UseInterceptors(ChapterInterceptor)
 export class ChapterController {
-  constructor(private readonly chapterService: ChapterService) {}
+  constructor(
+    private readonly chapterService: ChapterService,
+    private readonly workService: WorksService,
+  ) {}
 
   @Post('/:workId')
   async create(
@@ -24,28 +36,61 @@ export class ChapterController {
   ) {
     try {
       return await this.chapterService.create(workId, createChapterDto);
-    } catch (error) {
-      throw new BadRequestException(error.message);
+    } catch (error: unknown) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : '创建失败',
+      );
     }
   }
 
   @Get()
-  findAll() {
-    return this.chapterService.findAll();
+  async findAll(@Query() query: FindChapterDto) {
+    try {
+      let work: Work | undefined;
+      if (query.workId !== undefined) {
+        work = await this.workService.findOne(Number(query.workId));
+      }
+      return await this.chapterService.findAll(work, query);
+    } catch (error: unknown) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : '查询失败',
+      );
+    }
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.chapterService.findOne(+id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    try {
+      return await this.chapterService.findOne(id);
+    } catch (error: unknown) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : '查询失败',
+      );
+    }
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateChapterDto: UpdateChapterDto) {
-    return this.chapterService.update(+id, updateChapterDto);
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateChapterDto: UpdateChapterDto,
+  ) {
+    try {
+      return await this.chapterService.update(id, updateChapterDto);
+    } catch (error: unknown) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : '更新失败',
+      );
+    }
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.chapterService.remove(+id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    try {
+      return await this.chapterService.remove(id);
+    } catch (error: unknown) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : '删除失败',
+      );
+    }
   }
 }

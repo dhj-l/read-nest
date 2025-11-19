@@ -55,7 +55,9 @@ export class Work {
   count: number;
   @Column({ type: 'text', nullable: true })
   description: string;
-  @ManyToOne(() => User, (user) => user.works)
+  @Column({ default: 0 })
+  readCount: number;
+  @ManyToOne(() => User, (user) => user.works, { onDelete: 'CASCADE' })
   user: User;
   @ManyToMany(() => Category, (category) => category.works)
   @JoinTable({ name: 'work_category' })

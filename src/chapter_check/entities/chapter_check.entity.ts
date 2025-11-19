@@ -21,9 +21,11 @@ export enum ChapterCheckStatus {
 export class ChapterCheck {
   @PrimaryGeneratedColumn()
   id: number;
-  @ManyToOne(() => User, (user) => user.chapterChecks)
+  @ManyToOne(() => User, (user) => user.chapterChecks, { onDelete: 'CASCADE' })
   user: User;
-  @ManyToOne(() => Chapter, (chapter) => chapter.chapterChecks)
+  @ManyToOne(() => Chapter, (chapter) => chapter.chapterChecks, {
+    onDelete: 'CASCADE',
+  })
   chapter: Chapter;
   @Column({
     type: 'enum',

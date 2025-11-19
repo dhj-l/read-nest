@@ -134,6 +134,7 @@ export class WorksService {
           status: true,
           description: true,
           cover_url: true,
+          readCount: true,
           user: {
             id: true,
             username: true,
@@ -171,6 +172,7 @@ export class WorksService {
         status: true,
         description: true,
         cover_url: true,
+        readCount: true,
         categorys: {
           id: true,
           name: true,
@@ -185,7 +187,7 @@ export class WorksService {
         where: {
           id,
         },
-        relations: ['categorys', 'user', 'bookChecks', 'chapters'],
+        relations: ['categorys', 'user', 'bookChecks'],
       });
       if (!work) {
         throw new BadRequestException('作品不存在');

@@ -26,7 +26,6 @@ export class FindChapterDto {
   status?: number;
   @IsOptional()
   @IsString({ message: '章节名称必须是字符串' })
-  @Length(1, 30, { message: '章节名称长度必须在1-30之间' })
   name?: string;
   @IsOptional()
   @IsNumber({}, { message: '页码必须是数字' })

@@ -6,40 +6,61 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
+  Req,
+  BadRequestException,
+  ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { ChapterCheckService } from './chapter_check.service';
+import type { Request } from 'express';
+import { QueryChapterCheckDto } from './dto/query-chapter_check.dto';
 import { CreateChapterCheckDto } from './dto/create-chapter_check.dto';
 import { UpdateChapterCheckDto } from './dto/update-chapter_check.dto';
+import { AuthGuard } from 'src/auth/auth.guard';
 
 @Controller('chapter-check')
+@UseGuards(AuthGuard)
 export class ChapterCheckController {
   constructor(private readonly chapterCheckService: ChapterCheckService) {}
 
   @Post()
-  create(@Body() createChapterCheckDto: CreateChapterCheckDto) {
-    return this.chapterCheckService.create(createChapterCheckDto);
+  async create(
+    @Body() createChapterCheckDto: CreateChapterCheckDto,
+    @Req() req: Request & { user: { username: string; sub: number } },
+  ) {
+    try {
+      return await this.chapterCheckService.create(
+        createChapterCheckDto,
+        req.user,
+      );
+    } catch (error: unknown) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : '创建失败',
+      );
+    }
   }
 
   @Get()
-  findAll() {
-    return this.chapterCheckService.findAll();
+  findAll(@Query() query: QueryChapterCheckDto) {
+    return this.chapterCheckService.findAll(query);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.chapterCheckService.findOne(+id);
+  findOne() {
+    throw new BadRequestException('不支持详情查询');
   }
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateChapterCheckDto: UpdateChapterCheckDto,
   ) {
-    return this.chapterCheckService.update(+id, updateChapterCheckDto);
+    return this.chapterCheckService.update(id, updateChapterCheckDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.chapterCheckService.remove(+id);
+  remove() {
+    throw new BadRequestException('不支持删除操作');
   }
 }

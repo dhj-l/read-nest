@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { IsIn } from 'class-validator';
 
 export enum ChapterCheckStatus {
   /**待审核 */
@@ -28,11 +29,15 @@ export class ChapterCheck {
   })
   chapter: Chapter;
   @Column({
-    type: 'enum',
-    enum: ChapterCheckStatus,
+    type: 'tinyint',
     default: ChapterCheckStatus.Pending,
   })
-  status: ChapterCheckStatus;
+  @IsIn([
+    ChapterCheckStatus.Pending,
+    ChapterCheckStatus.Approved,
+    ChapterCheckStatus.Rejected,
+  ])
+  status: number;
   @CreateDateColumn()
   createTime: Date;
   @UpdateDateColumn()

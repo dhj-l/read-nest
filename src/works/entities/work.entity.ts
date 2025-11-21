@@ -89,6 +89,9 @@ export class Work {
   @Column({ default: WorkStatus.UNPUBLISHED })
   //状态 0 未上架 1 已上架 2 已下架 3 连载中 4 已完结
   status: WorkStatus;
+  //章节数量
+  @Column({ default: 0 })
+  chapterCount: number;
   @Column()
   cover_url: string;
   @CreateDateColumn()

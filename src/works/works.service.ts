@@ -135,6 +135,7 @@ export class WorksService {
           description: true,
           cover_url: true,
           readCount: true,
+          chapterCount: true,
           user: {
             id: true,
             username: true,
@@ -173,6 +174,7 @@ export class WorksService {
         description: true,
         cover_url: true,
         readCount: true,
+        chapterCount: true,
         categorys: {
           id: true,
           name: true,

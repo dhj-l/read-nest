@@ -6,23 +6,26 @@ import {
   Patch,
   Param,
   Delete,
+  BadRequestException,
+  Req,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { RecordService } from './record.service';
-import { CreateRecordDto } from './dto/create-record.dto';
+import { CreateRecordDto, FindRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { ChapterInterceptor } from 'src/chapter/chapter.interceptor';
 
 @Controller('record')
+@UseGuards(AuthGuard)
+@UseInterceptors(ChapterInterceptor)
 export class RecordController {
   constructor(private readonly recordService: RecordService) {}
 
-  @Post()
-  create(@Body() createRecordDto: CreateRecordDto) {
-    return this.recordService.create(createRecordDto);
-  }
-
   @Get()
-  findAll() {
-    return this.recordService.findAll();
+  async findAll(@Body() findRecordDto: FindRecordDto) {
+    return await this.recordService.findAll(findRecordDto);
   }
 
   @Get(':id')

@@ -11,7 +11,9 @@ import {
   Query,
   UseInterceptors,
   UseGuards,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { ChapterService } from './chapter.service';
 import { CreateChapterDto, FindChapterDto } from './dto/create-chapter.dto';
 import { UpdateChapterDto } from './dto/update-chapter.dto';
@@ -59,9 +61,12 @@ export class ChapterController {
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request & { user: { sub: number } },
+  ) {
     try {
-      return await this.chapterService.findOne(id);
+      return await this.chapterService.findOne(id, req.user.sub);
     } catch (error: unknown) {
       throw new BadRequestException(
         error instanceof Error ? error.message : '查询失败',

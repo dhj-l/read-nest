@@ -3,6 +3,8 @@ import { CreateChapterDto, FindChapterDto } from './dto/create-chapter.dto';
 import { UpdateChapterDto } from './dto/update-chapter.dto';
 import { DataSource, Like, Repository, type FindOptionsWhere } from 'typeorm';
 import { Work } from 'src/works/entities/work.entity';
+import { Record } from 'src/record/entities/record.entity';
+import { User } from 'src/user/entities/user.entity';
 import { Chapter } from './entities/chapter.entity';
 import { ChapterCheck } from 'src/chapter_check/entities/chapter_check.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,6 +15,8 @@ export class ChapterService {
     private dataSource: DataSource,
     @InjectRepository(Chapter) private chapterRepository: Repository<Chapter>,
     @InjectRepository(Work) private workRepository: Repository<Work>,
+    @InjectRepository(Record) private recordRepository: Repository<Record>,
+    @InjectRepository(User) private userRepository: Repository<User>,
   ) {}
   async create(workId: number, createChapterDto: CreateChapterDto) {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -93,18 +97,44 @@ export class ChapterService {
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, userId?: number) {
     try {
       const chapter = await this.chapterRepository.findOne({
         where: { id },
         relations: ['work'],
       });
-      if (!chapter) {
-        throw new BadRequestException('章节不存在');
+      if (!chapter || chapter.status === 0) {
+        throw new BadRequestException('章节不存在或者章节暂未通过审核');
       }
       // 增加章节阅读数
       chapter.work.readCount = (chapter.work.readCount ?? 0) + 1;
       await this.workRepository.save(chapter.work);
+      // 创建/更新阅读记录（按用户-作品唯一，更新所读章节）
+      if (typeof userId === 'number') {
+        const existing = await this.recordRepository.findOne({
+          where: {
+            user: { id: userId },
+            work: { id: chapter.work.id },
+          },
+          relations: ['user', 'work'],
+        });
+        if (existing) {
+          existing.chapter = chapter;
+          await this.recordRepository.save(existing);
+        } else {
+          const user = await this.userRepository.findOne({
+            where: { id: userId },
+          });
+          if (user) {
+            const rec = this.recordRepository.create({
+              user,
+              work: chapter.work,
+              chapter,
+            });
+            await this.recordRepository.save(rec);
+          }
+        }
+      }
       return chapter;
     } catch (error: unknown) {
       throw new BadRequestException(

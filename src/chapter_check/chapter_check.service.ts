@@ -12,6 +12,7 @@ import {
   ChapterCheck,
   ChapterCheckStatus,
 } from './entities/chapter_check.entity';
+import { Work } from 'src/works/entities/work.entity';
 
 @Injectable()
 export class ChapterCheckService {
@@ -20,6 +21,8 @@ export class ChapterCheckService {
     private chapterRepository: Repository<Chapter>,
     @InjectRepository(ChapterCheck)
     private chapterCheckRepository: Repository<ChapterCheck>,
+    @InjectRepository(Work)
+    private workRepository: Repository<Work>,
   ) {}
   async create(
     createChapterCheckDto: CreateChapterCheckDto,
@@ -37,8 +40,8 @@ export class ChapterCheckService {
         },
       },
     });
-    if (!chapter || chapter.status !== 0) {
-      throw new BadRequestException('相关章节不存在或章节状态不是待审核');
+    if (!chapter) {
+      throw new BadRequestException('相关章节不存在');
     }
     const userId = chapter.work.user.id;
     if (userId !== user.sub) {
@@ -119,6 +122,18 @@ export class ChapterCheckService {
       where: { id },
       relations: ['chapter'],
     });
+    const work = await this.workRepository.findOne({
+      where: {
+        chapters: {
+          id: record?.chapter.id,
+        },
+      },
+      relations: ['chapters'],
+    });
+    console.log(work);
+    if (!work) {
+      throw new BadRequestException('相关作品不存在');
+    }
     if (!record) {
       throw new BadRequestException('审核记录不存在');
     }
@@ -140,6 +155,8 @@ export class ChapterCheckService {
         record.chapter.status = ChapterStatus.Rejected;
       }
       await this.chapterRepository.save(record.chapter);
+      work.chapterCount += 1;
+      await this.workRepository.save(work);
     }
     return await this.chapterCheckRepository.save(record);
   }

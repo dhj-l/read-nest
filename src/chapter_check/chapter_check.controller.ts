@@ -11,6 +11,7 @@ import {
   BadRequestException,
   ParseIntPipe,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ChapterCheckService } from './chapter_check.service';
 import type { Request } from 'express';
@@ -18,9 +19,11 @@ import { QueryChapterCheckDto } from './dto/query-chapter_check.dto';
 import { CreateChapterCheckDto } from './dto/create-chapter_check.dto';
 import { UpdateChapterCheckDto } from './dto/update-chapter_check.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { ChapterInterceptor } from 'src/chapter/chapter.interceptor';
 
 @Controller('chapter-check')
 @UseGuards(AuthGuard)
+@UseInterceptors(ChapterInterceptor)
 export class ChapterCheckController {
   constructor(private readonly chapterCheckService: ChapterCheckService) {}
 

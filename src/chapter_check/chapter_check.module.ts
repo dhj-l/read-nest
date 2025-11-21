@@ -5,9 +5,13 @@ import { UserModule } from 'src/user/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Chapter } from 'src/chapter/entities/chapter.entity';
 import { ChapterCheck } from './entities/chapter_check.entity';
+import { Work } from 'src/works/entities/work.entity';
 
 @Module({
-  imports: [UserModule, TypeOrmModule.forFeature([Chapter, ChapterCheck])],
+  imports: [
+    UserModule,
+    TypeOrmModule.forFeature([Chapter, ChapterCheck, Work]),
+  ],
   controllers: [ChapterCheckController],
   providers: [ChapterCheckService],
 })

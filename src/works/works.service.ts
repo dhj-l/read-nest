@@ -123,7 +123,10 @@ export class WorksService {
       }
       // 处理状态查询
       if (status !== WorkStatus.ALL) {
-        whereConditions.status = status;
+        whereConditions.status =
+          status === WorkStatus.PUBLISHED_SERIAL_ENDED
+            ? In([WorkStatus.PUBLISHED, WorkStatus.SERIAL, WorkStatus.ENDED])
+            : status;
       }
 
       const [works, total] = await this.workRepository.findAndCount({

@@ -103,9 +103,11 @@ export class ChapterService {
         where: { id },
         relations: ['work'],
       });
-      if (!chapter || chapter.status === 0) {
-        throw new BadRequestException('章节不存在或者章节暂未通过审核');
+      if (!chapter) {
+        throw new BadRequestException('章节不存在');
       }
+      console.log(chapter, '123');
+
       // 增加章节阅读数
       chapter.work.readCount = (chapter.work.readCount ?? 0) + 1;
       await this.workRepository.save(chapter.work);

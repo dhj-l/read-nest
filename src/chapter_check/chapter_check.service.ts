@@ -7,16 +7,17 @@ import { CreateChapterCheckDto } from './dto/create-chapter_check.dto';
 import { UpdateChapterCheckDto } from './dto/update-chapter_check.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Chapter, ChapterStatus } from 'src/chapter/entities/chapter.entity';
-import { And, In, Repository } from 'typeorm';
+import { And, In, Repository, DataSource } from 'typeorm';
 import {
   ChapterCheck,
   ChapterCheckStatus,
 } from './entities/chapter_check.entity';
-import { Work } from 'src/works/entities/work.entity';
+import { Work, WorkStatus } from 'src/works/entities/work.entity';
 
 @Injectable()
 export class ChapterCheckService {
   constructor(
+    private readonly dataSource: DataSource,
     @InjectRepository(Chapter)
     private chapterRepository: Repository<Chapter>,
     @InjectRepository(ChapterCheck)
@@ -118,47 +119,114 @@ export class ChapterCheckService {
   }
 
   async update(id: number, updateChapterCheckDto: UpdateChapterCheckDto) {
-    const record = await this.chapterCheckRepository.findOne({
-      where: { id },
-      relations: ['chapter'],
-    });
-    const work = await this.workRepository.findOne({
-      where: {
-        chapters: {
-          id: record?.chapter.id,
-        },
-      },
-      relations: ['chapters'],
-    });
-    console.log(work);
-    if (!work) {
-      throw new BadRequestException('相关作品不存在');
-    }
-    if (!record) {
-      throw new BadRequestException('审核记录不存在');
-    }
-    if (record.status !== 0) {
-      throw new BadRequestException('审核状态已变更，禁止再次修改');
-    }
-    const nextStatus = updateChapterCheckDto.status as ChapterCheckStatus;
-    if (
-      nextStatus !== ChapterCheckStatus.Approved &&
-      nextStatus !== ChapterCheckStatus.Rejected
-    ) {
-      throw new BadRequestException('仅支持状态变更为通过或拒绝');
-    }
-    record.status = nextStatus;
-    if (record.chapter) {
-      if (nextStatus === ChapterCheckStatus.Approved) {
-        record.chapter.status = ChapterStatus.Approved;
-      } else if (nextStatus === ChapterCheckStatus.Rejected) {
-        record.chapter.status = ChapterStatus.Rejected;
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      // 1) 加锁读取待更新的审核记录（确保状态检查的一致性）
+      const record = await queryRunner.manager.findOne(ChapterCheck, {
+        where: { id },
+        relations: ['chapter'],
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!record) {
+        throw new BadRequestException('审核记录不存在');
       }
-      await this.chapterRepository.save(record.chapter);
-      work.chapterCount += 1;
-      await this.workRepository.save(work);
+      if (record.status !== ChapterCheckStatus.Pending) {
+        throw new BadRequestException('审核状态已变更，禁止再次修改');
+      }
+
+      // 2) 加锁读取当前章节所属作品（避免并发下章节数与作品状态不一致）
+      const work = await queryRunner.manager.findOne(Work, {
+        where: { chapters: { id: record.chapter?.id } },
+        relations: ['chapters'],
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!work) {
+        throw new BadRequestException('相关作品不存在');
+      }
+
+      // 3) 校验目标状态仅允许：通过或拒绝
+      const nextStatus = updateChapterCheckDto.status as ChapterCheckStatus;
+      if (
+        nextStatus !== ChapterCheckStatus.Approved &&
+        nextStatus !== ChapterCheckStatus.Rejected
+      ) {
+        throw new BadRequestException('仅支持状态变更为通过或拒绝');
+      }
+
+      record.status = nextStatus;
+
+      if (record.chapter) {
+        // 4) 加锁读取章节本体，避免 stale 数据写回
+        const chapter = await queryRunner.manager.findOne(Chapter, {
+          where: { id: record.chapter.id },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!chapter) {
+          throw new BadRequestException('章节不存在');
+        }
+        if (nextStatus === ChapterCheckStatus.Approved) {
+          // 5) 审核通过：章节设为已上架、作品章节数+1、作品置为连载中（若非）
+          const newCount = work.chapterCount + 1;
+          const nextWorkStatus =
+            work.status !== WorkStatus.SERIAL ? WorkStatus.SERIAL : work.status;
+
+          const updChapterRes = await queryRunner.manager
+            .createQueryBuilder()
+            .update(Chapter)
+            .set({ status: ChapterStatus.Approved })
+            .where('id = :id', { id: chapter.id })
+            .execute();
+          if (!updChapterRes.affected) {
+            throw new BadRequestException('章节状态更新失败');
+          }
+
+          const updWorkRes = await queryRunner.manager
+            .createQueryBuilder()
+            .update(Work)
+            .set({ chapterCount: newCount, status: nextWorkStatus })
+            .where('id = :id', { id: work.id })
+            .execute();
+          if (!updWorkRes.affected) {
+            throw new BadRequestException('作品信息更新失败');
+          }
+
+          // 刷新内存态以保证响应数据准确
+          chapter.status = ChapterStatus.Approved;
+          work.chapterCount = newCount;
+          work.status = nextWorkStatus;
+        } else {
+          // 6) 审核拒绝：仅更新章节状态为已下架
+          const updChapterRes = await queryRunner.manager
+            .createQueryBuilder()
+            .update(Chapter)
+            .set({ status: ChapterStatus.Rejected })
+            .where('id = :id', { id: chapter.id })
+            .execute();
+          if (!updChapterRes.affected) {
+            throw new BadRequestException('章节状态更新失败');
+          }
+          chapter.status = ChapterStatus.Rejected;
+        }
+
+        // 将最新章节对象挂回返回记录，保证响应数据一致
+        record.chapter = chapter;
+      }
+
+      // 7) 持久化审核记录状态变更
+      const saved = await queryRunner.manager.save(ChapterCheck, record);
+      await queryRunner.commitTransaction();
+      return saved;
+    } catch (error: unknown) {
+      await queryRunner.rollbackTransaction();
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException(String(error));
+    } finally {
+      await queryRunner.release();
     }
-    return await this.chapterCheckRepository.save(record);
   }
 
   remove() {

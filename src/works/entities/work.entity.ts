@@ -44,6 +44,10 @@ export enum WorkStatus {
    * 审核失败
    */
   REJECTED = 5,
+  /**
+   * 查询已上架，连载中，已完结的作品
+   */
+  PUBLISHED_SERIAL_ENDED = 6,
 }
 @Entity()
 export class Work {

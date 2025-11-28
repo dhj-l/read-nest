@@ -21,6 +21,7 @@ import { ChapterCheck } from './chapter_check/entities/chapter_check.entity';
 import { RedisModule } from './redis/redis.module';
 import { EmailModule } from './email/email.module';
 import { UploadModule } from './upload/upload.module';
+import { WebsocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { UploadModule } from './upload/upload.module';
     RedisModule,
     EmailModule,
     UploadModule,
+    WebsocketModule,
   ],
   controllers: [],
   providers: [],

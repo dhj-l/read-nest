@@ -54,7 +54,6 @@ export class WorksController {
       if (query.status !== undefined) {
         query.status = Number(query.status) as WorkStatus;
       }
-      console.log(query.status, '123');
 
       return await this.worksService.findAll(query);
     } catch (error) {

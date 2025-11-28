@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateRecordDto, FindRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,18 +10,8 @@ export class RecordService {
   constructor(
     @InjectRepository(Record) private recordRepository: Repository<Record>,
   ) {}
-  async findAll(findRecordDto: FindRecordDto) {
-    const { userId, workId, page = 1, pageSize = 10 } = findRecordDto;
-    const conditions = {
-      user: {},
-      work: {},
-    };
-    if (userId) {
-      Reflect.set(conditions.user, 'id', userId);
-    }
-    if (workId) {
-      Reflect.set(conditions.work, 'id', workId);
-    }
+  async findAll(findRecordDto: FindRecordDto, userId: number) {
+    const { page = 1, pageSize = 10 } = findRecordDto;
     const [data, total] = await this.recordRepository.findAndCount({
       select: {
         id: true,
@@ -41,7 +31,11 @@ export class RecordService {
         createTime: true,
         updateTime: true,
       },
-      where: conditions,
+      where: {
+        user: {
+          id: userId,
+        },
+      },
       order: {
         id: 'DESC',
       },
@@ -55,8 +49,40 @@ export class RecordService {
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} record`;
+  async findOne(workId: number, userId: number) {
+    const record = await this.recordRepository.findOne({
+      select: {
+        id: true,
+        user: {
+          id: true,
+          username: true,
+        },
+        work: {
+          id: true,
+          title: true,
+          cover_url: true,
+        },
+        chapter: {
+          id: true,
+          name: true,
+        },
+        createTime: true,
+        updateTime: true,
+      },
+      where: {
+        work: {
+          id: workId,
+        },
+        user: {
+          id: userId,
+        },
+      },
+      relations: ['user', 'work', 'chapter'],
+    });
+    if (!record) {
+      throw new BadRequestException('记录不存在');
+    }
+    return record;
   }
 
   update(id: number, updateRecordDto: UpdateRecordDto) {

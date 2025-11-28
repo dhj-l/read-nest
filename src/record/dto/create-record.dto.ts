@@ -11,14 +11,6 @@ export class CreateRecordDto {
 
 export class FindRecordDto {
   @IsOptional()
-  @IsNotEmpty({ message: '请输入用户id' })
-  @IsNumber({}, { message: '用户id必须是数字' })
-  userId: number;
-  @IsOptional()
-  @IsNotEmpty({ message: '请输入作品id' })
-  @IsNumber({}, { message: '作品id必须是数字' })
-  workId: number;
-  @IsOptional()
   @IsNotEmpty({ message: '请输入页码' })
   @IsNumber({}, { message: '页码必须是数字' })
   page: number;

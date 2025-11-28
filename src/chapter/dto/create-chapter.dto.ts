@@ -33,4 +33,8 @@ export class FindChapterDto {
   @IsOptional()
   @IsNumber({}, { message: '每页数量必须是数字' })
   pageSize?: number;
+  //是否查询全部章节
+  @IsOptional()
+  @IsNumber({}, { message: '是否查询全部章节必须是数字' })
+  all?: number;
 }

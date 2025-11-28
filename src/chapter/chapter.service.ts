@@ -66,7 +66,7 @@ export class ChapterService {
   }
 
   async findAll(work: Work | undefined, findChapterDto: FindChapterDto) {
-    const { name = '', page = 1, pageSize = 10 } = findChapterDto;
+    const { name = '', page = 1, pageSize = 10, all = 0 } = findChapterDto;
     const { status } = findChapterDto;
 
     const condition: FindOptionsWhere<Chapter> = {
@@ -80,14 +80,28 @@ export class ChapterService {
     if (work) {
       condition.work = { id: work.id };
     }
+
     const [chapters, total] = await this.chapterRepository.findAndCount({
+      select: [
+        'id',
+        'name',
+        'count',
+        'status',
+        'work',
+        'createTime',
+        'updateTime',
+      ],
       where: condition,
       order: {
         id: 'ASC',
       },
       relations: ['work'],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      ...(all
+        ? {}
+        : {
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+          }),
     });
     return {
       chapters,
@@ -106,7 +120,6 @@ export class ChapterService {
       if (!chapter) {
         throw new BadRequestException('章节不存在');
       }
-      console.log(chapter, '123');
 
       // 增加章节阅读数
       chapter.work.readCount = (chapter.work.readCount ?? 0) + 1;

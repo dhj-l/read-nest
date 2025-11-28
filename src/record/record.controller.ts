@@ -10,6 +10,7 @@ import {
   Req,
   UseGuards,
   UseInterceptors,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { RecordService } from './record.service';
 import { CreateRecordDto, FindRecordDto } from './dto/create-record.dto';
@@ -24,13 +25,19 @@ export class RecordController {
   constructor(private readonly recordService: RecordService) {}
 
   @Get()
-  async findAll(@Body() findRecordDto: FindRecordDto) {
-    return await this.recordService.findAll(findRecordDto);
+  async findAll(
+    @Body() findRecordDto: FindRecordDto,
+    @Req() req: Request & { user: { sub: number } },
+  ) {
+    return await this.recordService.findAll(findRecordDto, req.user.sub);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.recordService.findOne(+id);
+  @Get(':workId')
+  findOne(
+    @Param('workId', ParseIntPipe) workId: number,
+    @Req() req: Request & { user: { sub: number } },
+  ) {
+    return this.recordService.findOne(workId, req.user.sub);
   }
 
   @Patch(':id')

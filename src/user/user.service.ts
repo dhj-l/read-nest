@@ -169,4 +169,19 @@ export class UserService {
       access_token: token,
     };
   }
+  async getInfo(userid: number) {
+    const user = await this.userRepository.findOne({
+      where: {
+        id: userid,
+      },
+      relations: {
+        roles: true,
+        works: true,
+      },
+    });
+    if (!user) {
+      throw new ConflictException('用户不存在');
+    }
+    return user;
+  }
 }

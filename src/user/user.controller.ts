@@ -12,6 +12,7 @@ import {
   ParseIntPipe,
   BadRequestException,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { UserService } from './user.service';
@@ -61,6 +62,17 @@ export class UserController {
       return this.userService.findAll(query);
     } catch (error) {
       throw new ConflictException('查询用户失败');
+    }
+  }
+  //获取个人信息
+  @Get('/info')
+  @UseGuards(AuthGuard)
+  getInfo(@Req() req: Request & { user: { sub: number } }) {
+    try {
+      return this.userService.getInfo(Number(req.user.sub));
+    } catch (error) {
+      const { message } = error as { message?: string };
+      throw new ConflictException(message || '查询用户信息失败');
     }
   }
   //根据id查询用户

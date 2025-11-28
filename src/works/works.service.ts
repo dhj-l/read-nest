@@ -71,7 +71,6 @@ export class WorksService {
     } catch (error) {
       //5.回滚事务
       await queryRunner.rollbackTransaction();
-      console.log(error);
 
       if (error.errno === 1062) {
         // PostgreSQL 唯一约束违反

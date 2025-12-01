@@ -5,14 +5,11 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
   UseGuards,
   BadRequestException,
   Req,
   Query,
-  UploadedFile,
   UseInterceptors,
-  Res,
   ParseIntPipe,
 } from '@nestjs/common';
 import { WorksService } from './works.service';

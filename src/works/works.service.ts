@@ -94,7 +94,7 @@ export class WorksService {
         status = WorkStatus.ALL,
         count = CountLevel.ALL,
         category_ids = '-1',
-        sort = 'DESC',
+        sort = 'hot',
       } = query;
 
       // 构建查询条件
@@ -105,7 +105,7 @@ export class WorksService {
           username: Like(`%${username}%`),
         },
         categorys: {
-          id: category_ids === '-1' ? undefined : In(category_ids.split(',')),
+          id: category_ids == '-1' ? undefined : In(category_ids.split(',')),
         },
       };
 
@@ -127,6 +127,17 @@ export class WorksService {
             ? In([WorkStatus.PUBLISHED, WorkStatus.SERIAL, WorkStatus.ENDED])
             : status;
       }
+      const order = {};
+      console.log(sort);
+      //处理sort
+      if (sort === 'hot') {
+        order['readCount'] = 'DESC';
+      } else if (sort === 'new') {
+        order['updateTime'] = 'DESC';
+      } else if (sort === 'count') {
+        order['count'] = 'DESC';
+      }
+      console.log(order);
 
       const [works, total] = await this.workRepository.findAndCount({
         select: {
@@ -150,9 +161,7 @@ export class WorksService {
           updateTime: true,
         },
         where: whereConditions,
-        order: {
-          id: sort,
-        },
+        order,
         relations: ['categorys', 'user'],
         skip: (page - 1) * pageSize,
         take: pageSize,

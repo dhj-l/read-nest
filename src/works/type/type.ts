@@ -49,7 +49,7 @@ export interface FindAllWorkType {
   status?: WorkStatus;
   count?: CountLevel;
   category_ids?: string;
-  sort?: 'DESC' | 'ASC';
+  sort: 'hot' | 'new' | 'count';
 }
 
 export const FileTypes = ['image/png', 'image/jpeg', 'image/jpg'];

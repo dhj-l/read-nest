@@ -25,6 +25,9 @@ import { ChapterInterceptor } from 'src/chapter/chapter.interceptor';
 export class BookShelfController {
   constructor(private readonly bookShelfService: BookShelfService) {}
 
+  /**
+   * 创建用户书架
+   */
   @Post()
   async create(
     @Body() createBookShelfDto: CreateBookShelfDto,
@@ -39,6 +42,9 @@ export class BookShelfController {
     }
   }
 
+  /**
+   * 获取用户书架中的作品列表
+   */
   @Get('works')
   async listWorks(
     @Query() query: QueryShelfDto,
@@ -48,25 +54,33 @@ export class BookShelfController {
       return await this.bookShelfService.listWorks(req.user.sub, query);
     } catch (error: unknown) {
       throw new BadRequestException(
-        error instanceof Error ? error.message : '查询书架失败',
+        error instanceof Error ? error.message : '查询书架作品列表失败',
       );
     }
   }
 
+  /**
+   * 添加作品到用户书架
+   */
   @Post('works/:workId')
   async addWork(
     @Param('workId', ParseIntPipe) workId: number,
     @Req() req: Request & { user: { sub: number } },
   ) {
     try {
+      console.log(123);
+
       return await this.bookShelfService.addWork(req.user.sub, workId);
     } catch (error: unknown) {
       throw new BadRequestException(
-        error instanceof Error ? error.message : '添加书籍到书架失败',
+        error instanceof Error ? error.message : '添加作品到书架失败',
       );
     }
   }
 
+  /**
+   * 从用户书架移除作品
+   */
   @Delete('works/:workId')
   async removeWork(
     @Param('workId', ParseIntPipe) workId: number,
@@ -76,18 +90,21 @@ export class BookShelfController {
       return await this.bookShelfService.removeWork(req.user.sub, workId);
     } catch (error: unknown) {
       throw new BadRequestException(
-        error instanceof Error ? error.message : '从书架移除书籍失败',
+        error instanceof Error ? error.message : '从书架移除作品失败',
       );
     }
   }
 
+  /**
+   * 获取用户书架信息
+   */
   @Get()
   async getShelf(@Req() req: Request & { user: { sub: number } }) {
     try {
       return await this.bookShelfService.getShelf(req.user.sub);
     } catch (error: unknown) {
       throw new BadRequestException(
-        error instanceof Error ? error.message : '查询书架失败',
+        error instanceof Error ? error.message : '获取书架信息失败',
       );
     }
   }

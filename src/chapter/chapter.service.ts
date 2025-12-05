@@ -88,6 +88,7 @@ export class ChapterService {
         'count',
         'status',
         'work',
+        'contentHtml',
         'createTime',
         'updateTime',
       ],

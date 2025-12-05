@@ -13,7 +13,7 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { WorksService } from './works.service';
-import { CreateWorkDto } from './dto/create-work.dto';
+import { CreateWorkDto, FindAllByUserDto } from './dto/create-work.dto';
 import { AddCategoryDto, UpdateWorkDto } from './dto/update-work.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { UserService } from 'src/user/user.service';
@@ -53,6 +53,22 @@ export class WorksController {
       }
 
       return await this.worksService.findAll(query);
+    } catch (error) {
+      throw new BadRequestException(error.message || '查询失败');
+    }
+  }
+
+  /**
+   * 获取个人所有作品
+   */
+  @Get('/all')
+  async findAllByUser(
+    @Query() findAllByUserDto: FindAllByUserDto,
+    @Req() req: Request & { user: any },
+  ) {
+    try {
+      const userId = req.user.sub;
+      return await this.worksService.findAllByUser(findAllByUserDto, userId);
     } catch (error) {
       throw new BadRequestException(error.message || '查询失败');
     }

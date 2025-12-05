@@ -15,6 +15,9 @@ export class CreateChapterDto {
   @IsNotEmpty({ message: '请输入章节内容' })
   @IsString({ message: '章节内容必须是字符串' })
   content: string;
+  @IsOptional()
+  @IsString({ message: '章节内容html必须是字符串' })
+  contentHtml?: string;
 }
 
 export class FindChapterDto {

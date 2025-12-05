@@ -31,6 +31,8 @@ export class Chapter {
   name: string;
   @Column({ type: 'longtext' })
   content: string;
+  @Column({ type: 'longtext', nullable: true })
+  contentHtml: string;
   @Column({ type: 'tinyint', default: ChapterStatus.Pending })
   @IsIn([ChapterStatus.Pending, ChapterStatus.Approved, ChapterStatus.Rejected])
   status: number;

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { User } from 'src/user/entities/user.entity';
 
 export class CreateWorkDto {
@@ -13,7 +13,16 @@ export class CreateWorkDto {
   cover_url: string;
 
   @IsNotEmpty({ message: '分类不能为空' })
-  @IsNumber({}, { each: true })
   category_ids: number[];
   user?: User;
+}
+
+export class FindAllByUserDto {
+  @IsNumber({}, { message: '页码必须是数字' })
+  @IsOptional({ message: '页码是可选的' })
+  page: number;
+
+  @IsNumber({}, { message: '每页数量必须是数字' })
+  @IsOptional({ message: '每页数量是可选的' })
+  pageSize: number;
 }

@@ -46,7 +46,7 @@ export class TtsService {
       .filter(Boolean);
     const defaultAue = process.env.XFYUN_TTS_DEFAULT_AUE ?? 'lame';
 
-    let aue: 'lame' | 'raw' =
+    const aue: 'lame' | 'raw' =
       (options.aue ?? defaultAue) === 'raw' ? 'raw' : 'lame';
     let vcn = (options.vcn ?? defaultVoice).trim();
     if (whitelist.length && !whitelist.includes(vcn)) {

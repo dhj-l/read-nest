@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { CreateWorkDto } from './dto/create-work.dto';
+import { CreateWorkDto, FindAllByUserDto } from './dto/create-work.dto';
 import { AddCategoryDto, UpdateWorkDto } from './dto/update-work.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Work, WorkStatus } from './entities/work.entity';
@@ -13,6 +13,7 @@ import {
 } from 'typeorm';
 import { Category } from 'src/category/entities/category.entity';
 import { BookCheck } from 'src/book_check/entities/book_check.entity';
+import { join } from 'path';
 import {
   CountLevel,
   CountLevelRanges,
@@ -36,6 +37,15 @@ export class WorksService {
     await queryRunner.startTransaction();
 
     try {
+      console.log(createWorkDto.category_ids);
+
+      if (typeof createWorkDto.category_ids === 'string') {
+        createWorkDto.category_ids = (createWorkDto.category_ids as string)
+          .split(',')
+          .map(Number);
+      }
+      console.log(createWorkDto.category_ids);
+
       //1.验证分类是否存在
       const categorys = await queryRunner.manager.find(Category, {
         where: {
@@ -97,35 +107,51 @@ export class WorksService {
         sort = 'hot',
       } = query;
 
-      // 构建查询条件
-      const whereConditions: any = {
-        title: Like(`%${title}%`),
-
-        user: {
-          username: Like(`%${username}%`),
-        },
+      // 构建查询条件（title 与 username 采用 OR）
+      const baseWhere: any = {
         categorys: {
           id: category_ids == '-1' ? undefined : In(category_ids.split(',')),
         },
       };
+      const ors: any[] = [];
+      if (title?.trim()) {
+        ors.push({ ...baseWhere, title: Like(`%${title}%`) });
+      }
+      if (username?.trim()) {
+        ors.push({ ...baseWhere, user: { username: Like(`%${username}%`) } });
+      }
+      let whereConditions: any = ors.length > 0 ? ors : baseWhere;
 
       // 处理字数等级查询
       if (count !== CountLevel.ALL) {
         const range = CountLevelRanges[count];
-        if (range.max === Infinity) {
-          // 120万字以上
-          whereConditions.count = MoreThanOrEqual(range.min);
+        const countCond =
+          range.max === Infinity
+            ? MoreThanOrEqual(range.min)
+            : Between(range.min, range.max);
+        if (Array.isArray(whereConditions)) {
+          whereConditions = whereConditions.map((w) => ({
+            ...w,
+            count: countCond,
+          }));
         } else {
-          // 其他区间
-          whereConditions.count = Between(range.min, range.max);
+          whereConditions.count = countCond;
         }
       }
       // 处理状态查询
       if (status !== WorkStatus.ALL) {
-        whereConditions.status =
+        const statusCond =
           status === WorkStatus.PUBLISHED_SERIAL_ENDED
             ? In([WorkStatus.PUBLISHED, WorkStatus.SERIAL, WorkStatus.ENDED])
             : status;
+        if (Array.isArray(whereConditions)) {
+          whereConditions = whereConditions.map((w) => ({
+            ...w,
+            status: statusCond,
+          }));
+        } else {
+          whereConditions.status = statusCond;
+        }
       }
       const order = {};
       console.log(sort);
@@ -250,6 +276,53 @@ export class WorksService {
       return await this.workRepository.save(work);
     } catch (error) {
       throw new BadRequestException(error.message || '添加分类失败');
+    }
+  }
+  /**
+   * 获取用户所有作品
+   */
+  async findAllByUser(findAllByUserDto: FindAllByUserDto, userId: number) {
+    try {
+      const { page = 1, pageSize = 10 } = findAllByUserDto;
+      const [works, total] = await this.workRepository.findAndCount({
+        select: {
+          id: true,
+          title: true,
+          count: true,
+          status: true,
+          description: true,
+          cover_url: true,
+          readCount: true,
+          chapterCount: true,
+          user: {
+            id: true,
+            username: true,
+          },
+          categorys: {
+            id: true,
+            name: true,
+          },
+          createTime: true,
+          updateTime: true,
+        },
+        where: {
+          user: {
+            id: userId,
+          },
+        },
+        relations: ['categorys', 'user'],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        order: {
+          updateTime: 'DESC',
+        },
+      });
+      return {
+        works,
+        total,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message || '查询失败');
     }
   }
 }

@@ -1,12 +1,21 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateChapterDto, FindChapterDto } from './dto/create-chapter.dto';
 import { UpdateChapterDto } from './dto/update-chapter.dto';
-import { DataSource, Like, Repository, type FindOptionsWhere } from 'typeorm';
+import {
+  DataSource,
+  Like,
+  Repository,
+  In,
+  type FindOptionsWhere,
+} from 'typeorm';
 import { Work } from 'src/works/entities/work.entity';
 import { Record } from 'src/record/entities/record.entity';
 import { User } from 'src/user/entities/user.entity';
-import { Chapter } from './entities/chapter.entity';
-import { ChapterCheck } from 'src/chapter_check/entities/chapter_check.entity';
+import { Chapter, ChapterStatus } from './entities/chapter.entity';
+import {
+  ChapterCheck,
+  ChapterCheckStatus,
+} from 'src/chapter_check/entities/chapter_check.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
@@ -42,12 +51,6 @@ export class ChapterService {
       work.count += chapterData.count;
       let chapter = queryRunner.manager.create(Chapter, chapterData);
       chapter = await queryRunner.manager.save(Chapter, chapter);
-      //将记录添加到章节审核表
-      const chapterCheck = queryRunner.manager.create(ChapterCheck, {
-        user: work.user,
-        chapter: chapter,
-      });
-      await queryRunner.manager.save(ChapterCheck, chapterCheck);
       await queryRunner.manager.save(Work, work);
       await queryRunner.commitTransaction();
       Reflect.set(chapter, 'username', work.user.username);
@@ -159,6 +162,63 @@ export class ChapterService {
     }
   }
 
+  async toPending(id: number, userId: number) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const chapter = await queryRunner.manager.findOne(Chapter, {
+        where: { id },
+        relations: { work: { user: true } },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!chapter) {
+        throw new BadRequestException('章节不存在');
+      }
+      const authorId = chapter.work?.user?.id;
+      if (authorId !== userId) {
+        throw new BadRequestException('您不是此章节的作者');
+      }
+      if (
+        ![ChapterStatus.Unpublished, ChapterStatus.Rejected].includes(
+          chapter.status as ChapterStatus,
+        )
+      ) {
+        throw new BadRequestException('仅支持未发布或已下架章节提交审核');
+      }
+      const dup = await queryRunner.manager.findOne(ChapterCheck, {
+        where: {
+          chapter: { id },
+          status: ChapterCheckStatus.Pending,
+        },
+      });
+      if (dup) {
+        throw new BadRequestException('该章节已存在待审核记录或已通过审核');
+      }
+      chapter.status = ChapterStatus.Pending;
+      await queryRunner.manager.save(Chapter, chapter);
+      const check = queryRunner.manager.create(ChapterCheck, {
+        user: chapter.work.user,
+        chapter,
+      });
+      const saved = await queryRunner.manager.save(ChapterCheck, check);
+      await queryRunner.commitTransaction();
+      Reflect.deleteProperty(saved, 'user');
+      if (saved.chapter) {
+        Reflect.deleteProperty(saved.chapter, 'work');
+      }
+      return saved;
+    } catch (error: unknown) {
+      await queryRunner.rollbackTransaction();
+      if (error instanceof Error) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException(String(error));
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   async update(id: number, updateChapterDto: UpdateChapterDto) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -178,6 +238,7 @@ export class ChapterService {
       }
       if (updateChapterDto.content !== undefined) {
         chapter.content = updateChapterDto.content;
+        chapter.contentHtml = updateChapterDto.contentHtml ?? '';
         chapter.count = updateChapterDto.content.length;
       }
       const delta = (chapter.count ?? 0) - prevCount;

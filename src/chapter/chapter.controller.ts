@@ -98,4 +98,18 @@ export class ChapterController {
       );
     }
   }
+
+  @Patch(':id/pending')
+  async toPending(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request & { user: { sub: number } },
+  ) {
+    try {
+      return await this.chapterService.toPending(id, req.user.sub);
+    } catch (error: unknown) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : '提交失败',
+      );
+    }
+  }
 }

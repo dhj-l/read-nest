@@ -12,6 +12,8 @@ import {
 } from 'typeorm';
 
 export enum ChapterStatus {
+  /**未发布 */
+  Unpublished = -1,
   /**待审核 */
   Pending = 0,
   /**
@@ -33,8 +35,13 @@ export class Chapter {
   content: string;
   @Column({ type: 'longtext', nullable: true })
   contentHtml: string;
-  @Column({ type: 'tinyint', default: ChapterStatus.Pending })
-  @IsIn([ChapterStatus.Pending, ChapterStatus.Approved, ChapterStatus.Rejected])
+  @Column({ type: 'tinyint', default: ChapterStatus.Unpublished })
+  @IsIn([
+    ChapterStatus.Unpublished,
+    ChapterStatus.Pending,
+    ChapterStatus.Approved,
+    ChapterStatus.Rejected,
+  ])
   status: number;
   @Column({ default: 0 })
   count: number;

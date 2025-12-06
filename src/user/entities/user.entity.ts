@@ -1,6 +1,7 @@
 import { BookCheck } from 'src/book_check/entities/book_check.entity';
 import { BookShelf } from 'src/book_shelf/entities/book_shelf.entity';
 import { ChapterCheck } from 'src/chapter_check/entities/chapter_check.entity';
+import { Conversation } from 'src/conversations/entities/conversation.entity';
 import { Record } from 'src/record/entities/record.entity';
 import { Role } from 'src/role/entities/role.entity';
 import { Work } from 'src/works/entities/work.entity';
@@ -74,6 +75,8 @@ export class User {
     onDelete: 'CASCADE',
   })
   chapterChecks: ChapterCheck[];
+  @OneToMany(() => Conversation, (conversation) => conversation.user)
+  conversations: Conversation[];
   @CreateDateColumn()
   createTime: Date;
   @UpdateDateColumn()

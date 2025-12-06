@@ -22,6 +22,9 @@ import { RedisModule } from './redis/redis.module';
 import { EmailModule } from './email/email.module';
 import { UploadModule } from './upload/upload.module';
 import { WebsocketModule } from './websocket/websocket.module';
+import { ProvidersModule } from './providers/providers.module';
+import { ConversationsModule } from './conversations/conversations.module';
+import { MessagesModule } from './messages/messages.module';
 
 @Module({
   imports: [
@@ -59,6 +62,9 @@ import { WebsocketModule } from './websocket/websocket.module';
     EmailModule,
     UploadModule,
     WebsocketModule,
+    ProvidersModule,
+    ConversationsModule,
+    MessagesModule,
   ],
   controllers: [],
   providers: [],

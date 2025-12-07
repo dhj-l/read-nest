@@ -37,7 +37,7 @@ export enum MessageState {
    */
   Stream = 'stream',
 }
-export enum role {
+export enum Role {
   /**
    *助手
    */
@@ -61,8 +61,8 @@ export class Message {
   type: MessageType;
   @Column({ type: 'enum', enum: MessageState, default: MessageState.Finished })
   state: MessageState;
-  @Column({ type: 'enum', enum: role })
-  role: role;
+  @Column({ type: 'enum', enum: Role })
+  role: Role;
   @Index()
   @ManyToOne(() => Conversation, (conversation) => conversation.messages, {
     onDelete: 'CASCADE',

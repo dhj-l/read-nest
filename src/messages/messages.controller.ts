@@ -6,12 +6,20 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
+  Query,
+  ParseIntPipe,
+  UseInterceptors,
 } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { MessagesInterceptor } from './messages.interceptor';
 
 @Controller('messages')
+@UseGuards(AuthGuard)
+@UseInterceptors(MessagesInterceptor)
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 
@@ -21,8 +29,8 @@ export class MessagesController {
   }
 
   @Get()
-  findAll() {
-    return this.messagesService.findAll();
+  findAll(@Query('conversationId', ParseIntPipe) conversationId: number) {
+    return this.messagesService.findAll(conversationId);
   }
 
   @Get(':id')

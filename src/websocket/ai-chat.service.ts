@@ -1,8 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Conversation } from 'src/conversations/entities/conversation.entity';
-import { Message } from 'src/messages/entities/message.entity';
+import {
+  Message,
+  MessageState,
+  MessageType,
+  Role,
+} from 'src/messages/entities/message.entity';
 import { Provider } from 'src/providers/entities/provider.entity';
+import { User } from 'src/user/entities/user.entity';
 import type { Repository } from 'typeorm';
 
 /**
@@ -19,31 +25,36 @@ export class AiChatService {
     private readonly messagesRepo: Repository<Message>,
     @InjectRepository(Provider)
     private readonly providersRepo: Repository<Provider>,
+    @InjectRepository(User)
+    private readonly usersRepo: Repository<User>,
   ) {}
 
   /**
    * 初始化一个新的会话
-   * @param userId 用户 ID（可用于关联会话归属）
-   * @param providerId 模型提供方 ID（用于选择具体的 AI 模型）
-   * @param title 会话标题
    * @returns 返回占位的会话 ID
    */
-  async initConversation(
-    userId: number,
-    providerId: number,
-    title: string,
-  ): Promise<{ conversationId: number }> {
-    // 占位：声明依赖已注入，避免未使用的告警；真实实现中将使用这些仓库进行落库
-    void this.conversationsRepo.target;
-    void this.providersRepo.target;
-
-    // 真实实现示例（后续替换）：
-    // const provider = await this.providersRepo.findOne({ where: { id: providerId } });
-    // const conv = this.conversationsRepo.create({ user: { id: userId } as any, provider, title });
-    // const saved = await this.conversationsRepo.save(conv);
-    // return { conversationId: saved.id };
-
-    return { conversationId: 0 };
+  async initConversation(userId: number, content: string) {
+    try {
+      const user = await this.usersRepo.findOne({ where: { id: userId } });
+      const provider = await this.providersRepo.findOne({
+        where: { model: 'deepseek-chat' },
+      });
+      if (!user) {
+        throw new BadRequestException('用户不存在');
+      }
+      if (!provider) {
+        throw new BadRequestException('模型提供方不存在');
+      }
+      const conversation = this.conversationsRepo.create({
+        user,
+        title: content,
+        provider,
+      });
+      const savedConversation = await this.conversationsRepo.save(conversation);
+      return { conversationId: savedConversation.id, model: provider.model };
+    } catch (error) {
+      throw new BadRequestException('初始化会话失败');
+    }
   }
 
   /**
@@ -52,18 +63,63 @@ export class AiChatService {
    * @param text 文本内容
    * @returns 返回占位的消息 ID
    */
-  async sendUserMessage(
-    conversationId: number,
-    text: string,
-  ): Promise<{ messageId: number }> {
-    void this.messagesRepo.target;
+  async sendUserMessage({
+    conversationId,
+    text,
+    state = MessageState.Finished,
+    role = Role.User,
+    type = MessageType.Question,
+  }: {
+    conversationId: number;
+    text: string;
+    state?: MessageState;
+    role?: Role;
+    type?: MessageType;
+  }) {
+    try {
+      const conversation = await this.conversationsRepo.findOne({
+        where: { id: conversationId },
+      });
+      if (!conversation) {
+        throw new BadRequestException('会话不存在');
+      }
+      const message = this.messagesRepo.create({
+        conversation,
+        type,
+        state,
+        message: text,
+        role,
+      });
+      const savedMessage = await this.messagesRepo.save(message);
+      return { messageId: savedMessage.id };
+    } catch (error) {
+      throw new BadRequestException('保存用户消息失败');
+    }
+  }
 
-    // 真实实现示例（后续替换）：
-    // const msg = this.messagesRepo.create({ conversation: { id: conversationId } as any, type: MessageType.Question, state: MessageState.Stream, message: text });
-    // const saved = await this.messagesRepo.save(msg);
-    // return { messageId: saved.id };
-
-    return { messageId: 0 };
+  async updateMessage({
+    messageId,
+    content,
+    state,
+  }: {
+    messageId: number;
+    content: string;
+    state: MessageState;
+  }) {
+    try {
+      const message = await this.messagesRepo.findOne({
+        where: { id: messageId },
+      });
+      if (!message) {
+        throw new BadRequestException('消息不存在');
+      }
+      message.message = content;
+      message.state = state;
+      await this.messagesRepo.save(message);
+      return { messageId };
+    } catch (error) {
+      throw new BadRequestException('更新消息失败');
+    }
   }
 
   /**

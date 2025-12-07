@@ -18,6 +18,9 @@ import { Record } from './record/entities/record.entity';
 import { BookShelf } from './book_shelf/entities/book_shelf.entity';
 import { BookCheck } from './book_check/entities/book_check.entity';
 import { ChapterCheck } from './chapter_check/entities/chapter_check.entity';
+import { Conversation } from './conversations/entities/conversation.entity';
+import { Message } from './messages/entities/message.entity';
+import { Provider } from './providers/entities/provider.entity';
 import { RedisModule } from './redis/redis.module';
 import { EmailModule } from './email/email.module';
 import { UploadModule } from './upload/upload.module';
@@ -45,6 +48,9 @@ import { MessagesModule } from './messages/messages.module';
         BookShelf,
         BookCheck,
         ChapterCheck,
+        Conversation,
+        Message,
+        Provider,
       ],
       synchronize: true,
       logging: ['error'],

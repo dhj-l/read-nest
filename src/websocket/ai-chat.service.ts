@@ -47,7 +47,7 @@ export class AiChatService {
       }
       const conversation = this.conversationsRepo.create({
         user,
-        title: content,
+        title: content.slice(0, 10),
         provider,
       });
       const savedConversation = await this.conversationsRepo.save(conversation);
@@ -127,11 +127,21 @@ export class AiChatService {
    * @param conversationId 会话 ID
    * @returns 消息数组（占位为空）
    */
-  async getHistory(conversationId: number): Promise<{ messages: Message[] }> {
-    // 真实实现示例（后续替换）：
-    // const messages = await this.messagesRepo.find({ where: { conversation: { id: conversationId } }, order: { createTime: 'ASC' } });
-    // return { messages };
+  async getHistory(conversationId: number) {
+    const messages = await this.messagesRepo.find({
+      where: {
+        conversation: { id: conversationId },
+      },
+      relations: ['conversation'],
+    });
+    const messageList = messages.map((item) => {
+      return {
+        role: item.role,
+        content: item.message,
+      };
+    });
 
-    return { messages: [] };
+    const model = messages[0].conversation?.provider?.model || 'deepseek-chat';
+    return { messageList, model };
   }
 }

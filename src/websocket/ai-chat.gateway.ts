@@ -43,7 +43,10 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // 记录连接与用户的映射，便于断开时清理和按用户分组推送
   private readonly userByClient = new Map<string, number>();
-
+  private readonly openai = new OpenAI({
+    baseURL: 'https://api.deepseek.com',
+    apiKey: process.env.API_KEY,
+  });
   // 从握手中提取 token：支持 auth.token / headers.authorization / query.token
   private extractToken(client: Socket): string | null {
     const authToken = (client.handshake as any)?.auth?.token as
@@ -150,11 +153,7 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         state: MessageState.Stream,
       });
       let answerMessage = '';
-      const openai = new OpenAI({
-        baseURL: 'https://api.deepseek.com',
-        apiKey: process.env.API_KEY,
-      });
-      const completion = await openai.chat.completions.create({
+      const completion = await this.openai.chat.completions.create({
         model: model,
         messages: messageList,
         stream: true,
@@ -200,11 +199,54 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('chat:send')
   async sendMessage(
     client: Socket,
-    payload: { conversationId: number; text: string },
+    { conversationId, content }: { conversationId: number; content: string },
   ) {
-    client.emit('chat:accepted', { conversationId: payload.conversationId });
-    // 占位：真实实现中这里会逐块推送模型响应内容
-    this.server.to(client.id).emit('chat:stream', { chunk: '', done: true });
+    if (!conversationId || !content) {
+      client.emit('chat:error', {
+        code: 'BAD_REQUEST',
+        message: '缺少 conversationId 或 content',
+      });
+      return;
+    }
+    //先将用户消息保存到数据库
+    await this.aiChatService.sendUserMessage({
+      conversationId,
+      text: content,
+      role: Role.User,
+      type: MessageType.Question,
+      state: MessageState.Finished,
+    });
+    //获取对应的上下文
+    const { messageList, model } =
+      await this.aiChatService.getHistory(conversationId);
+    //先将回答模板添加到数据库
+    const { messageId } = await this.aiChatService.sendUserMessage({
+      conversationId,
+      text: '',
+      role: Role.Assistant,
+      type: MessageType.Answer,
+      state: MessageState.Stream,
+    });
+    let answerMessage = '';
+    const completion = await this.openai.chat.completions.create({
+      model: model,
+      messages: messageList,
+      stream: true,
+    });
+    for await (const part of completion) {
+      const delta = part.choices[0] || '';
+      answerMessage += delta.delta.content;
+      client.emit('chat:stream', {
+        chunk: delta.delta.content,
+        done: delta.finish_reason === 'stop',
+      });
+    }
+    //将回答保存到数据库
+    await this.aiChatService.updateMessage({
+      messageId,
+      content: answerMessage,
+      state: MessageState.Finished,
+    });
   }
 
   /**
@@ -215,9 +257,9 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   @SubscribeMessage('chat:history')
   async getHistory(client: Socket, payload: { conversationId: number }) {
-    const { messages } = await this.aiChatService.getHistory(
+    const messageList = await this.aiChatService.getHistory(
       payload.conversationId,
     );
-    client.emit('chat:history', { messages });
+    // client.emit('chat:history', { messages });
   }
 }

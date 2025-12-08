@@ -19,6 +19,8 @@ export class MessagesService {
   }
 
   async findAll(conversationId: number) {
+    console.log(conversationId);
+
     try {
       const conversation = await this.conversationsRepository.findOne({
         where: {
@@ -30,7 +32,9 @@ export class MessagesService {
       }
       return await this.messagesRepository.find({
         where: {
-          conversation,
+          conversation: {
+            id: conversationId,
+          },
         },
       });
     } catch (error) {

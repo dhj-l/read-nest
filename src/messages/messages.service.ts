@@ -36,6 +36,7 @@ export class MessagesService {
             id: conversationId,
           },
         },
+        order: { createTime: 'ASC' },
       });
     } catch (error) {
       throw new BadRequestException(error.message || '获取对话记录失败');

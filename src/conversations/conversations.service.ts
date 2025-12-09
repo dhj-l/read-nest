@@ -1,15 +1,36 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Conversation } from './entities/conversation.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class ConversationsService {
+  constructor(
+    @InjectRepository(Conversation)
+    private readonly conversationRepository: Repository<Conversation>,
+  ) {}
   create(createConversationDto: CreateConversationDto) {
     return 'This action adds a new conversation';
   }
 
-  findAll() {
-    return `This action returns all conversations`;
+  async findAll(userId: number) {
+    try {
+      const conversations = await this.conversationRepository.find({
+        where: {
+          user: {
+            id: userId,
+          },
+        },
+        order: {
+          createTime: 'DESC',
+        },
+      });
+      return conversations;
+    } catch (error) {
+      throw new BadRequestException(error.message || '查询会话失败');
+    }
   }
 
   findOne(id: number) {

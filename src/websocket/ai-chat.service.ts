@@ -132,7 +132,8 @@ export class AiChatService {
       where: {
         conversation: { id: conversationId },
       },
-      relations: ['conversation'],
+      relations: ['conversation', 'conversation.provider'],
+      order: { createTime: 'ASC' },
     });
     const messageList = messages.map((item) => {
       return {
@@ -141,7 +142,16 @@ export class AiChatService {
       };
     });
 
-    const model = messages[0].conversation?.provider?.model || 'deepseek-chat';
+    let model = 'deepseek-chat';
+    if (messages.length > 0) {
+      model = messages[0].conversation?.provider?.model || model;
+    } else {
+      const conv = await this.conversationsRepo.findOne({
+        where: { id: conversationId },
+        relations: ['provider'],
+      });
+      model = conv?.provider?.model || model;
+    }
     return { messageList, model };
   }
 }

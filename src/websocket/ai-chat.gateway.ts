@@ -52,8 +52,13 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const authToken = (client.handshake as any)?.auth?.token as
       | string
       | undefined;
-
-    return authToken || null;
+    const header = client.handshake.headers?.authorization;
+    const queryToken = (client.handshake.query as any)?.token as
+      | string
+      | undefined;
+    const bearer =
+      header && header.startsWith('Bearer ') ? header.slice(7) : undefined;
+    return authToken || bearer || queryToken || null;
   }
 
   // 客户端连接建立后，主动通知连接成功
@@ -121,12 +126,23 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.disconnect(true);
       return;
     }
+    let userId: number;
     try {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: jwtConstants.secret,
       });
+      userId = payload.sub;
+    } catch (error) {
+      client.emit('chat:error', {
+        code: 'UNAUTHORIZED',
+        message: 'token 无效',
+      });
+      client.disconnect(true);
+      return;
+    }
+    try {
       const { conversationId, model } =
-        await this.aiChatService.initConversation(payload.sub, content);
+        await this.aiChatService.initConversation(userId, content);
       await this.aiChatService.sendUserMessage({
         conversationId,
         text: content,
@@ -153,29 +169,42 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         state: MessageState.Stream,
       });
       let answerMessage = '';
+      let chunksSinceSave = 0;
+      client.emit('chat:conversationCreated', { conversationId });
       const completion = await this.openai.chat.completions.create({
         model: model,
         messages: messageList,
         stream: true,
       });
       for await (const part of completion) {
-        const delta = part.choices[0] || '';
-        answerMessage += delta.delta.content;
-        client.emit('chat:stream', {
-          chunk: delta.delta.content,
-          done: delta.finish_reason === 'stop',
-        });
+        const choice = part.choices?.[0];
+        const chunk = choice?.delta?.content || '';
+        const done =
+          choice?.finish_reason === 'stop' ||
+          choice?.finish_reason === 'length';
+        if (chunk) {
+          answerMessage += chunk;
+          chunksSinceSave += 1;
+          if (chunksSinceSave >= 10) {
+            await this.aiChatService.updateMessage({
+              messageId,
+              content: answerMessage,
+              state: MessageState.Stream,
+            });
+            chunksSinceSave = 0;
+          }
+        }
+        this.server.to(`user:${userId}`).emit('chat:stream', { chunk, done });
       }
       await this.aiChatService.updateMessage({
         messageId,
         content: answerMessage,
         state: MessageState.Finished,
       });
-      client.emit('chat:conversationCreated', { conversationId });
     } catch (error) {
       client.emit('chat:error', {
-        code: 'UNAUTHORIZED',
-        message: 'token 无效',
+        code: 'SERVER_ERROR',
+        message: '服务异常',
       });
       client.disconnect(true);
       return;
@@ -227,19 +256,33 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       type: MessageType.Answer,
       state: MessageState.Stream,
     });
+    const userId = this.userByClient.get(client.id);
     let answerMessage = '';
+    let chunksSinceSave = 0;
     const completion = await this.openai.chat.completions.create({
       model: model,
       messages: messageList,
       stream: true,
     });
     for await (const part of completion) {
-      const delta = part.choices[0] || '';
-      answerMessage += delta.delta.content;
-      client.emit('chat:stream', {
-        chunk: delta.delta.content,
-        done: delta.finish_reason === 'stop',
-      });
+      const choice = part.choices?.[0];
+      const chunk = choice?.delta?.content || '';
+      const done =
+        choice?.finish_reason === 'stop' || choice?.finish_reason === 'length';
+      if (chunk) {
+        answerMessage += chunk;
+        chunksSinceSave += 1;
+        if (chunksSinceSave >= 10) {
+          await this.aiChatService.updateMessage({
+            messageId,
+            content: answerMessage,
+            state: MessageState.Stream,
+          });
+          chunksSinceSave = 0;
+        }
+      }
+      const target = userId ? this.server.to(`user:${userId}`) : client;
+      target.emit('chat:stream', { chunk, done });
     }
     //将回答保存到数据库
     await this.aiChatService.updateMessage({
@@ -257,9 +300,10 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   @SubscribeMessage('chat:history')
   async getHistory(client: Socket, payload: { conversationId: number }) {
-    const messageList = await this.aiChatService.getHistory(
+    const { messageList, model } = await this.aiChatService.getHistory(
       payload.conversationId,
     );
-    // client.emit('chat:history', { messages });
+    client.join(`conversation:${payload.conversationId}`);
+    client.emit('chat:history', { messageList, model });
   }
 }

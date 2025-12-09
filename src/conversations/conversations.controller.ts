@@ -6,12 +6,20 @@ import {
   Patch,
   Param,
   Delete,
+  Req,
+  UseGuards,
+  BadRequestException,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ConversationsService } from './conversations.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { MessagesInterceptor } from 'src/messages/messages.interceptor';
 
 @Controller('conversations')
+@UseGuards(AuthGuard)
+@UseInterceptors(MessagesInterceptor)
 export class ConversationsController {
   constructor(private readonly conversationsService: ConversationsService) {}
 
@@ -21,8 +29,14 @@ export class ConversationsController {
   }
 
   @Get()
-  findAll() {
-    return this.conversationsService.findAll();
+  async findAll(@Req() req: Request & { user: { sub: number } }) {
+    try {
+      const userId = req.user.sub;
+
+      return await this.conversationsService.findAll(userId);
+    } catch (error) {
+      throw new BadRequestException(error.message || '查询会话失败');
+    }
   }
 
   @Get(':id')

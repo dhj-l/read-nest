@@ -147,7 +147,6 @@ export class BookShelfService {
     try {
       const { page = 1, pageSize = 10 } = query;
       const shelf = await this.ensureShelf(userId);
-      console.log(shelf);
 
       const qb = this.workRepository
         .createQueryBuilder('work')

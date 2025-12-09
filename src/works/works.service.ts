@@ -37,14 +37,11 @@ export class WorksService {
     await queryRunner.startTransaction();
 
     try {
-      console.log(createWorkDto.category_ids);
-
       if (typeof createWorkDto.category_ids === 'string') {
         createWorkDto.category_ids = (createWorkDto.category_ids as string)
           .split(',')
           .map(Number);
       }
-      console.log(createWorkDto.category_ids);
 
       //1.验证分类是否存在
       const categorys = await queryRunner.manager.find(Category, {
@@ -154,7 +151,6 @@ export class WorksService {
         }
       }
       const order = {};
-      console.log(sort);
       //处理sort
       if (sort === 'hot') {
         order['readCount'] = 'DESC';
@@ -163,7 +159,6 @@ export class WorksService {
       } else if (sort === 'count') {
         order['count'] = 'DESC';
       }
-      console.log(order);
 
       const [works, total] = await this.workRepository.findAndCount({
         select: {

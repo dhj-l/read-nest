@@ -68,8 +68,6 @@ export class BookShelfController {
     @Req() req: Request & { user: { sub: number } },
   ) {
     try {
-      console.log(123);
-
       return await this.bookShelfService.addWork(req.user.sub, workId);
     } catch (error: unknown) {
       throw new BadRequestException(

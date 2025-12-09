@@ -194,6 +194,7 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             chunksSinceSave = 0;
           }
         }
+
         this.server.to(`user:${userId}`).emit('chat:stream', { chunk, done });
       }
       await this.aiChatService.updateMessage({

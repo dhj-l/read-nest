@@ -19,8 +19,6 @@ export class MessagesService {
   }
 
   async findAll(conversationId: number) {
-    console.log(conversationId);
-
     try {
       const conversation = await this.conversationsRepository.findOne({
         where: {

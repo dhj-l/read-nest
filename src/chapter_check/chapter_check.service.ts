@@ -48,6 +48,16 @@ export class ChapterCheckService {
     if (userId !== user.sub) {
       throw new UnauthorizedException('您不是此章节的作者，不能添加审核章节');
     }
+
+    // 检查作品状态：只有已上架、连载中或已完结的作品才能创建章节审核记录
+    if (![WorkStatus.PUBLISHED, WorkStatus.SERIAL, WorkStatus.ENDED].includes(chapter.work.status)) {
+      const statusDesc = {
+        [WorkStatus.UNPUBLISHED]: '未上架',
+        [WorkStatus.UNLISTED]: '已下架',
+        [WorkStatus.REJECTED]: '审核失败'
+      }[chapter.work.status];
+      throw new BadRequestException(`作品${statusDesc}，无法创建章节审核记录`);
+    }
     //判断审核章节中是否存在相同章节审核并且状态为待审核
     const chapterCheck = await this.chapterCheckRepository.findOne({
       where: {

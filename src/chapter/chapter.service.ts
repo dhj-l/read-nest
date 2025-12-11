@@ -8,7 +8,7 @@ import {
   In,
   type FindOptionsWhere,
 } from 'typeorm';
-import { Work } from 'src/works/entities/work.entity';
+import { Work, WorkStatus } from 'src/works/entities/work.entity';
 import { Record } from 'src/record/entities/record.entity';
 import { User } from 'src/user/entities/user.entity';
 import { Chapter, ChapterStatus } from './entities/chapter.entity';
@@ -39,6 +39,20 @@ export class ChapterService {
       });
       if (!work) {
         throw new BadRequestException('作品不存在');
+      }
+
+      // 检查作品状态：只有已上架、连载中或已完结的作品才能添加章节
+      if (
+        ![WorkStatus.PUBLISHED, WorkStatus.SERIAL, WorkStatus.ENDED].includes(
+          work.status,
+        )
+      ) {
+        const statusDesc = {
+          [WorkStatus.UNPUBLISHED]: '未上架',
+          [WorkStatus.UNLISTED]: '已下架',
+          [WorkStatus.REJECTED]: '审核失败',
+        }[work.status];
+        throw new BadRequestException(`作品${statusDesc}，无法添加章节`);
       }
 
       //构建章节数据
@@ -179,6 +193,21 @@ export class ChapterService {
       if (authorId !== userId) {
         throw new BadRequestException('您不是此章节的作者');
       }
+
+      // 检查作品状态：只有已上架、连载中或已完结的作品才能提交章节审核
+      if (
+        chapter.work &&
+        ![WorkStatus.PUBLISHED, WorkStatus.SERIAL, WorkStatus.ENDED].includes(
+          chapter.work.status,
+        )
+      ) {
+        const statusDesc = {
+          [WorkStatus.UNPUBLISHED]: '未上架',
+          [WorkStatus.UNLISTED]: '已下架',
+          [WorkStatus.REJECTED]: '审核失败',
+        }[chapter.work.status];
+        throw new BadRequestException(`作品${statusDesc}，无法提交章节审核`);
+      }
       if (
         ![ChapterStatus.Unpublished, ChapterStatus.Rejected].includes(
           chapter.status as ChapterStatus,
@@ -231,6 +260,21 @@ export class ChapterService {
       });
       if (!chapter) {
         throw new BadRequestException('章节不存在');
+      }
+
+      // 检查作品状态：只有已上架、连载中或已完结的作品才能修改章节
+      if (
+        chapter.work &&
+        ![WorkStatus.PUBLISHED, WorkStatus.SERIAL, WorkStatus.ENDED].includes(
+          chapter.work.status,
+        )
+      ) {
+        const statusDesc = {
+          [WorkStatus.UNPUBLISHED]: '未上架',
+          [WorkStatus.UNLISTED]: '已下架',
+          [WorkStatus.REJECTED]: '审核失败',
+        }[chapter.work.status];
+        throw new BadRequestException(`作品${statusDesc}，无法修改章节`);
       }
       const prevCount = chapter.count ?? 0;
       if (updateChapterDto.name !== undefined) {

@@ -43,6 +43,8 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // 记录连接与用户的映射，便于断开时清理和按用户分组推送
   private readonly userByClient = new Map<string, number>();
+  // 记录每个会话的流式请求控制器，支持用户主动中断
+  private readonly streamControllers = new Map<string, AbortController>();
   private readonly openai = new OpenAI({
     baseURL: 'https://api.deepseek.com',
     apiKey: process.env.API_KEY,
@@ -143,6 +145,21 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const { conversationId, model } =
         await this.aiChatService.initConversation(userId, content);
+      if (!process.env.API_KEY) {
+        client.emit('chat:error', {
+          code: 'CONFIG_ERROR',
+          message: '服务未配置 API_KEY',
+        });
+        client.disconnect(true);
+        return;
+      }
+      if (!model) {
+        client.emit('chat:error', {
+          code: 'BAD_PROVIDER',
+          message: '模型未配置或不可用',
+        });
+        return;
+      }
       await this.aiChatService.sendUserMessage({
         conversationId,
         text: content,
@@ -171,31 +188,75 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       let answerMessage = '';
       let chunksSinceSave = 0;
       client.emit('chat:conversationCreated', { conversationId });
-      const completion = await this.openai.chat.completions.create({
-        model: model,
-        messages: messageList,
-        stream: true,
-      });
-      for await (const part of completion) {
-        const choice = part.choices?.[0];
-        const chunk = choice?.delta?.content || '';
-        const done =
-          choice?.finish_reason === 'stop' ||
-          choice?.finish_reason === 'length';
-        if (chunk) {
-          answerMessage += chunk;
-          chunksSinceSave += 1;
-          if (chunksSinceSave >= 10) {
-            await this.aiChatService.updateMessage({
-              messageId,
-              content: answerMessage,
-              state: MessageState.Stream,
-            });
-            chunksSinceSave = 0;
-          }
-        }
+      console.log('conversationId', conversationId);
+      console.log(model, 'model');
 
-        this.server.to(`user:${userId}`).emit('chat:stream', { chunk, done });
+      const controller = new AbortController();
+      const key = `${client.id}:${conversationId}`;
+      this.streamControllers.set(key, controller);
+      const completion = await this.openai.chat.completions.create(
+        {
+          model: model,
+          messages: messageList,
+          stream: true,
+        },
+        { signal: controller.signal },
+      );
+      let gotFirstChunk = false;
+      const timeout = setTimeout(() => {
+        if (!gotFirstChunk) {
+          client.emit('chat:error', {
+            code: 'STREAM_TIMEOUT',
+            message: '模型响应超时',
+          });
+        }
+      }, 20000);
+      try {
+        for await (const part of completion) {
+          const choice = part.choices?.[0];
+          const chunk = choice?.delta?.content || '';
+          gotFirstChunk = gotFirstChunk || Boolean(chunk);
+
+          const done =
+            choice?.finish_reason === 'stop' ||
+            choice?.finish_reason === 'length';
+          if (chunk) {
+            answerMessage += chunk;
+            chunksSinceSave += 1;
+            if (chunksSinceSave >= 10) {
+              await this.aiChatService.updateMessage({
+                messageId,
+                content: answerMessage,
+                state: MessageState.Stream,
+              });
+              chunksSinceSave = 0;
+            }
+          }
+
+          this.server.to(`user:${userId}`).emit('chat:stream', { chunk, done });
+        }
+      } catch (streamErr) {
+        const aborted =
+          (streamErr as any)?.name === 'AbortError' ||
+          /abort/i.test(String(streamErr));
+        if (aborted) {
+          client.emit('chat:aborted', { conversationId });
+          await this.aiChatService.updateMessage({
+            messageId,
+            content: answerMessage,
+            state: MessageState.Finished,
+          });
+        } else {
+          client.emit('chat:error', {
+            code: 'STREAM_ERROR',
+            message: '模型流式响应异常',
+          });
+          client.disconnect(true);
+        }
+        return;
+      } finally {
+        clearTimeout(timeout);
+        this.streamControllers.delete(key);
       }
       await this.aiChatService.updateMessage({
         messageId,
@@ -260,30 +321,67 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = this.userByClient.get(client.id);
     let answerMessage = '';
     let chunksSinceSave = 0;
-    const completion = await this.openai.chat.completions.create({
-      model: model,
-      messages: messageList,
-      stream: true,
-    });
-    for await (const part of completion) {
-      const choice = part.choices?.[0];
-      const chunk = choice?.delta?.content || '';
-      const done =
-        choice?.finish_reason === 'stop' || choice?.finish_reason === 'length';
-      if (chunk) {
-        answerMessage += chunk;
-        chunksSinceSave += 1;
-        if (chunksSinceSave >= 10) {
-          await this.aiChatService.updateMessage({
-            messageId,
-            content: answerMessage,
-            state: MessageState.Stream,
-          });
-          chunksSinceSave = 0;
-        }
+    const controller = new AbortController();
+    const key = `${client.id}:${conversationId}`;
+    this.streamControllers.set(key, controller);
+    const completion = await this.openai.chat.completions.create(
+      { model: model, messages: messageList, stream: true },
+      { signal: controller.signal },
+    );
+    let gotFirstChunk = false;
+    const timeout = setTimeout(() => {
+      if (!gotFirstChunk) {
+        client.emit('chat:error', {
+          code: 'STREAM_TIMEOUT',
+          message: '模型响应超时',
+        });
       }
-      const target = userId ? this.server.to(`user:${userId}`) : client;
-      target.emit('chat:stream', { chunk, done });
+    }, 20000);
+    try {
+      for await (const part of completion) {
+        const choice = part.choices?.[0];
+        const chunk = choice?.delta?.content || '';
+        gotFirstChunk = gotFirstChunk || Boolean(chunk);
+        const done =
+          choice?.finish_reason === 'stop' ||
+          choice?.finish_reason === 'length';
+        if (chunk) {
+          answerMessage += chunk;
+          chunksSinceSave += 1;
+          if (chunksSinceSave >= 10) {
+            await this.aiChatService.updateMessage({
+              messageId,
+              content: answerMessage,
+              state: MessageState.Stream,
+            });
+            chunksSinceSave = 0;
+          }
+        }
+        const target = userId ? this.server.to(`user:${userId}`) : client;
+        target.emit('chat:stream', { chunk, done });
+      }
+    } catch (streamErr) {
+      const aborted =
+        (streamErr as any)?.name === 'AbortError' ||
+        /abort/i.test(String(streamErr));
+      if (aborted) {
+        client.emit('chat:aborted', { conversationId });
+        await this.aiChatService.updateMessage({
+          messageId,
+          content: answerMessage,
+          state: MessageState.Finished,
+        });
+      } else {
+        client.emit('chat:error', {
+          code: 'STREAM_ERROR',
+          message: '模型流式响应异常',
+        });
+        client.disconnect(true);
+      }
+      return;
+    } finally {
+      clearTimeout(timeout);
+      this.streamControllers.delete(key);
     }
     //将回答保存到数据库
     await this.aiChatService.updateMessage({
@@ -291,6 +389,27 @@ export class AiChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       content: answerMessage,
       state: MessageState.Finished,
     });
+  }
+
+  /**
+   * 中断对话：前端通过 socket.emit('chat:abort', { conversationId }) 调用
+   * 服务端会尝试取消对应会话的流式请求
+   */
+  @SubscribeMessage('chat:abort')
+  async abortConversation(client: Socket, payload: { conversationId: number }) {
+    const key = `${client.id}:${payload.conversationId}`;
+    const controller = this.streamControllers.get(key);
+    if (controller) {
+      controller.abort();
+      // 删除映射交由 finally 清理，这里容忍重复删除
+      this.streamControllers.delete(key);
+      client.emit('chat:aborted', { conversationId: payload.conversationId });
+    } else {
+      client.emit('chat:aborted', {
+        conversationId: payload.conversationId,
+        noop: true,
+      });
+    }
   }
 
   /**

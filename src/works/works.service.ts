@@ -155,7 +155,7 @@ export class WorksService {
       if (sort === 'hot') {
         order['readCount'] = 'DESC';
       } else if (sort === 'new') {
-        order['updateTime'] = 'DESC';
+        order['createTime'] = 'DESC';
       } else if (sort === 'count') {
         order['count'] = 'DESC';
       }

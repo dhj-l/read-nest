@@ -10,6 +10,7 @@ import {
   UseGuards,
   BadRequestException,
   UseInterceptors,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ConversationsService } from './conversations.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
@@ -53,7 +54,7 @@ export class ConversationsController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.conversationsService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.conversationsService.remove(id);
   }
 }

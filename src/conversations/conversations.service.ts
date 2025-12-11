@@ -41,7 +41,20 @@ export class ConversationsService {
     return `This action updates a #${id} conversation`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} conversation`;
+  async remove(id: number) {
+    try {
+      const conversation = await this.conversationRepository.findOne({
+        where: {
+          id,
+        },
+      });
+      if (!conversation) {
+        throw new BadRequestException('会话不存在');
+      }
+      await this.conversationRepository.remove(conversation);
+      return '删除成功';
+    } catch (error) {
+      throw new BadRequestException(error.message || '删除会话失败');
+    }
   }
 }

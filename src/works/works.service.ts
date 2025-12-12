@@ -320,4 +320,47 @@ export class WorksService {
       throw new BadRequestException(error.message || '查询失败');
     }
   }
+
+  /**
+   * 获取当前用户的统计数据：总作品数，总章节数，总阅读量，待审核条数
+   */
+  async getUserStatistics(userId: number) {
+    try {
+      // 1. 查询总作品数
+      const totalWorks = await this.workRepository.count({
+        where: {
+          user: {
+            id: userId,
+          },
+        },
+      });
+
+      // 2. 查询总章节数和总阅读量
+      const worksStats = await this.workRepository
+        .createQueryBuilder('work')
+        .select('SUM(work.chapterCount)', 'totalChapters')
+        .addSelect('SUM(work.readCount)', 'totalReads')
+        .where('work.userId = :userId', { userId })
+        .getRawOne();
+
+      // 3. 查询待审核条数
+      const pendingChecks = await this.bookCheckRepository.count({
+        where: {
+          user: {
+            id: userId,
+          },
+          status: 0, // 待审核状态
+        },
+      });
+
+      return {
+        totalWorks,
+        totalChapters: parseInt(worksStats.totalChapters) || 0,
+        totalReads: parseInt(worksStats.totalReads) || 0,
+        pendingChecks,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message || '获取统计数据失败');
+    }
+  }
 }

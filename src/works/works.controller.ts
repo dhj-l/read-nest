@@ -74,6 +74,19 @@ export class WorksController {
     }
   }
 
+  /**
+   * 获取当前用户的统计数据：总作品数，总章节数，总阅读量，待审核条数
+   */
+  @Get('/statistics')
+  async getStatistics(@Req() req: Request & { user: any }) {
+    try {
+      const userId = req.user.sub;
+      return await this.worksService.getUserStatistics(userId);
+    } catch (error) {
+      throw new BadRequestException(error.message || '获取统计数据失败');
+    }
+  }
+
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     try {

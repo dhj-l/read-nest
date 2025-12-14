@@ -87,6 +87,31 @@ export class WorksController {
     }
   }
 
+  /**
+   * 获取当前用户所有作品的阅读数量列表
+   */
+  @Get('/reads')
+  async getAllWorksReads(@Req() req: Request & { user: any }) {
+    try {
+      const userId = req.user.sub;
+      return await this.worksService.getAllWorksReads(userId);
+    } catch (error) {
+      throw new BadRequestException(error.message || '获取作品阅读数量失败');
+    }
+  }
+
+  /**
+   * 获取阅读量前10的作品排行榜
+   */
+  @Get('/top-reads')
+  async getTopReadWorks() {
+    try {
+      return await this.worksService.getTopReadWorks();
+    } catch (error) {
+      throw new BadRequestException(error.message || '获取热门作品失败');
+    }
+  }
+
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     try {

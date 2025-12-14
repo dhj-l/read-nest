@@ -170,6 +170,7 @@ export class WorksService {
           cover_url: true,
           readCount: true,
           chapterCount: true,
+
           user: {
             id: true,
             username: true,
@@ -361,6 +362,89 @@ export class WorksService {
       };
     } catch (error) {
       throw new BadRequestException(error.message || '获取统计数据失败');
+    }
+  }
+
+  /**
+   * 获取当前用户所有作品的阅读数量列表
+   * 仅查询已上架、连载中、已完结的作品，排除未上架、已下架、审核失败的作品
+   */
+  async getAllWorksReads(userId: number) {
+    try {
+      const works = await this.workRepository.find({
+        select: {
+          id: true,
+          title: true,
+          readCount: true,
+        },
+        where: {
+          user: {
+            id: userId,
+          },
+          status: In([
+            WorkStatus.PUBLISHED,
+            WorkStatus.SERIAL,
+            WorkStatus.ENDED,
+          ]),
+        },
+        order: {
+          readCount: 'DESC',
+        },
+      });
+
+      return works.map((work) => ({
+        workId: work.id,
+        title: work.title,
+        readCount: work.readCount,
+      }));
+    } catch (error) {
+      throw new BadRequestException(error.message || '获取作品阅读数量失败');
+    }
+  }
+
+  /**
+   * 获取阅读量前10的作品排行榜
+   * 仅包含已上架、连载中、已完结的作品，排除未上架、已下架、审核失败的作品
+   */
+  async getTopReadWorks() {
+    try {
+      const works = await this.workRepository.find({
+        select: {
+          id: true,
+          title: true,
+          readCount: true,
+          cover_url: true,
+          user: {
+            id: true,
+            username: true,
+          },
+          categorys: {
+            id: true,
+            name: true,
+          },
+          createTime: true,
+        },
+        where: {
+          status: In([
+            WorkStatus.PUBLISHED,
+            WorkStatus.SERIAL,
+            WorkStatus.ENDED,
+          ]),
+        },
+        order: {
+          readCount: 'DESC',
+        },
+        take: 10,
+        relations: ['user', 'categorys'],
+      });
+
+      return works.map((work) => ({
+        workId: work.id,
+        title: work.title,
+        readCount: work.readCount,
+      }));
+    } catch (error) {
+      throw new BadRequestException(error.message || '获取热门作品失败');
     }
   }
 }

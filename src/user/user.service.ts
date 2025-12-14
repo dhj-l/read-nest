@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto, LoginDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User, UserStatus } from './entities/user.entity';
 import { In, Like, Repository } from 'typeorm';
@@ -183,5 +184,43 @@ export class UserService {
       throw new ConflictException('用户不存在');
     }
     return user;
+  }
+
+  async changePassword(userId: number, changePasswordDto: ChangePasswordDto) {
+    const { oldPassword, newPassword, confirmPassword } = changePasswordDto;
+
+    // 验证新密码和确认密码是否一致
+    if (newPassword !== confirmPassword) {
+      throw new BadRequestException('新密码和确认密码不一致');
+    }
+    if (oldPassword === newPassword) {
+      throw new BadRequestException('新密码不能与原密码相同');
+    }
+
+    // 获取用户信息
+    const user = await this.userRepository.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      throw new ConflictException('用户不存在');
+    }
+
+    // 验证原密码
+    const isOldPasswordValid = await argon2.verify(user.password, oldPassword);
+    if (!isOldPasswordValid) {
+      throw new BadRequestException('原密码错误');
+    }
+
+    // 加密新密码
+    const hashedNewPassword = await argon2.hash(newPassword);
+
+    // 更新密码
+    user.password = hashedNewPassword;
+    user.updateTime = new Date();
+
+    return await this.userRepository.save(user);
   }
 }

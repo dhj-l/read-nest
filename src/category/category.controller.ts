@@ -52,6 +52,18 @@ export class CategoryController {
     }
   }
 
+  /**
+   * 获取所有分类下书籍的个数统计
+   */
+  @Get('/work-count')
+  async getWorkCountByCategory() {
+    try {
+      return await this.categoryService.getWorkCountByCategory();
+    } catch (error) {
+      throw new BadRequestException(error.message || '获取分类书籍数量失败');
+    }
+  }
+
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     try {

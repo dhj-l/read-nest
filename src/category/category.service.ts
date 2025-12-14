@@ -3,8 +3,9 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from './entities/category.entity';
-import { Like, Repository } from 'typeorm';
+import { Like, Repository, In } from 'typeorm';
 import { FindCategoryType } from './type/categoryType';
+import { Work, WorkStatus } from 'src/works/entities/work.entity';
 
 @Injectable()
 export class CategoryService {
@@ -77,6 +78,49 @@ export class CategoryService {
       return await this.categoryRepository.delete(id);
     } catch (error) {
       throw new BadRequestException(error.message || '删除分类失败');
+    }
+  }
+
+  /**
+   * 获取不同分类下书籍的个数统计
+   * 仅统计已上架、连载中、已完结的作品，排除未上架、已下架、审核失败的作品
+   */
+  async getWorkCountByCategory() {
+    try {
+      const categories = await this.categoryRepository.find({
+        select: {
+          id: true,
+          name: true,
+          description: true,
+        },
+        relations: {
+          works: true,
+        },
+      });
+
+      const result = categories.map((category) => {
+        // 过滤掉未上架、已下架、审核失败的作品，只保留已上架、连载中、已完结的作品
+        const validWorks = category.works.filter(
+          (work) =>
+            work.status === WorkStatus.PUBLISHED ||
+            work.status === WorkStatus.SERIAL ||
+            work.status === WorkStatus.ENDED,
+        );
+
+        return {
+          categoryId: category.id,
+          categoryName: category.name,
+          description: category.description,
+          workCount: validWorks.length,
+        };
+      });
+
+      // 按书籍数量降序排序
+      result.sort((a, b) => b.workCount - a.workCount);
+
+      return result;
+    } catch (error) {
+      throw new BadRequestException(error.message || '获取分类书籍数量失败');
     }
   }
 }

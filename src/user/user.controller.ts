@@ -17,6 +17,7 @@ import * as argon2 from 'argon2';
 import { UserService } from './user.service';
 import { CreateUserDto, LoginDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { UserItcInterceptor } from './itc/user-itc.interceptor';
 import { type FindUser } from './type/type';
 import { EmailService } from 'src/email/email.service';
@@ -143,6 +144,24 @@ export class UserController {
     } catch (error) {
       const { message } = error;
       throw new ConflictException(message || '登录失败');
+    }
+  }
+
+  //修改密码
+  @Post('/change-password')
+  @UseGuards(AuthGuard)
+  async changePassword(
+    @Req() req: Request & { user: { sub: number } },
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    try {
+      return await this.userService.changePassword(
+        Number(req.user.sub),
+        changePasswordDto,
+      );
+    } catch (error) {
+      const { message } = error;
+      throw new ConflictException(message || '修改密码失败');
     }
   }
 }

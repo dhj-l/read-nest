@@ -15,6 +15,7 @@ import {
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { AssignPermissionDto } from './dto/assign-permission.dto';
 import { type FindAllRoleDto } from './type/type';
 import { RoleItcInterceptor } from './itc/itc.interceptor';
 import { AuthGuard } from 'src/auth/auth.guard';
@@ -78,6 +79,17 @@ export class RoleController {
       const { message } = error;
 
       throw new BadRequestException(message || '删除参数错误');
+    }
+  }
+
+  @Post('assign-permission')
+  async assignPermission(@Body() assignPermissionDto: AssignPermissionDto) {
+    try {
+      const { roleId, permissionIds } = assignPermissionDto;
+      return await this.roleService.assignPermission(roleId, permissionIds);
+    } catch (error) {
+      const { message } = error;
+      throw new BadRequestException(message || '权限分配失败');
     }
   }
 }

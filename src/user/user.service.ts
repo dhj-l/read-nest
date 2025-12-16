@@ -176,13 +176,23 @@ export class UserService {
         id: userid,
       },
       relations: {
-        roles: true,
+        roles: {
+          permissions: true,
+        },
         works: true,
       },
     });
+    const permissions = new Set<string>();
     if (!user) {
       throw new ConflictException('用户不存在');
     }
+    user.roles.forEach((role) => {
+      role.permissions.forEach((permission) => {
+        permissions.add(permission.value);
+      });
+    });
+    // user.permissions = Array.from(permissions);
+    Reflect.set(user, 'permissions', Array.from(permissions));
     return user;
   }
 

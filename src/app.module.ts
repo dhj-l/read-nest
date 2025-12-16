@@ -11,6 +11,7 @@ import { BookCheckModule } from './book_check/book_check.module';
 import { ChapterCheckModule } from './chapter_check/chapter_check.module';
 import { User } from './user/entities/user.entity';
 import { Role } from './role/entities/role.entity';
+import { Permission } from './permission/entities/permission.entity';
 import { Work } from './works/entities/work.entity';
 import { Category } from './category/entities/category.entity';
 import { Chapter } from './chapter/entities/chapter.entity';
@@ -28,6 +29,7 @@ import { WebsocketModule } from './websocket/websocket.module';
 import { ProvidersModule } from './providers/providers.module';
 import { ConversationsModule } from './conversations/conversations.module';
 import { MessagesModule } from './messages/messages.module';
+import { PermissionModule } from './permission/permission.module';
 
 @Module({
   imports: [
@@ -41,6 +43,7 @@ import { MessagesModule } from './messages/messages.module';
       entities: [
         User,
         Role,
+        Permission,
         Work,
         Category,
         Chapter,
@@ -71,6 +74,7 @@ import { MessagesModule } from './messages/messages.module';
     ProvidersModule,
     ConversationsModule,
     MessagesModule,
+    PermissionModule,
   ],
   controllers: [],
   providers: [],

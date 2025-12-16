@@ -30,6 +30,8 @@ import { ProvidersModule } from './providers/providers.module';
 import { ConversationsModule } from './conversations/conversations.module';
 import { MessagesModule } from './messages/messages.module';
 import { PermissionModule } from './permission/permission.module';
+import { BannerModule } from './banner/banner.module';
+import { Banner } from './banner/entities/banner.entity';
 
 @Module({
   imports: [
@@ -54,6 +56,7 @@ import { PermissionModule } from './permission/permission.module';
         Conversation,
         Message,
         Provider,
+        Banner,
       ],
       synchronize: true,
       logging: ['error'],
@@ -75,6 +78,7 @@ import { PermissionModule } from './permission/permission.module';
     ConversationsModule,
     MessagesModule,
     PermissionModule,
+    BannerModule,
   ],
   controllers: [],
   providers: [],

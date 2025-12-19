@@ -164,4 +164,16 @@ export class UserController {
       throw new ConflictException(message || '修改密码失败');
     }
   }
+
+  //成为作者
+  @Post('/author')
+  @UseGuards(AuthGuard)
+  async becomeAuthor(@Req() req: Request & { user: { sub: number } }) {
+    try {
+      return await this.userService.becomeAuthor(Number(req.user.sub));
+    } catch (error) {
+      const { message } = error;
+      throw new ConflictException(message || '成为作者失败');
+    }
+  }
 }

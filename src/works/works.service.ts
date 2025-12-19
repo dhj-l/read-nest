@@ -215,6 +215,7 @@ export class WorksService {
         user: {
           id: true,
           username: true,
+          avatar_url: true,
         },
       };
       const work = await this.workRepository.findOne({

@@ -233,4 +233,32 @@ export class UserService {
 
     return await this.userRepository.save(user);
   }
+
+  async becomeAuthor(userId: number) {
+    const user = await this.userRepository.findOne({
+      where: {
+        id: userId,
+      },
+      relations: {
+        roles: true,
+      },
+    });
+    if (!user) {
+      throw new ConflictException('用户不存在');
+    }
+    if (user.roles.some((role) => role.value === 'author')) {
+      throw new ConflictException('用户已成为作者');
+    }
+    const role = await this.roleRepository.findOne({
+      where: {
+        value: 'author',
+      },
+    });
+    if (!role) {
+      throw new ConflictException('作者角色不存在');
+    }
+    user.roles.push(role);
+    user.updateTime = new Date(); // 手动更新时间戳
+    return await this.userRepository.save(user);
+  }
 }

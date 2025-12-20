@@ -36,9 +36,10 @@ export class BannerService {
       page = 1,
       pageSize = 10,
     } = findAllBannerDto;
+
     const [banners, total] = await this.bannerRepository.findAndCount({
       where: {
-        status,
+        status: status === BannerStatus.ALL ? undefined : status,
       },
       order: {
         createTime: 'DESC',

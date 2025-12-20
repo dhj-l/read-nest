@@ -29,12 +29,10 @@ export class Banner {
   title: string;
 
   @Column({
-    type: 'enum',
-    enum: BannerStatus,
     default: BannerStatus.ENABLED,
     comment: '状态：0-下架，1-上架',
   })
-  status: BannerStatus;
+  status: number;
 
   @CreateDateColumn()
   createTime: Date;

@@ -30,7 +30,6 @@ export class TtsService {
     if (!appid || !apiKey || !apiSecret) {
       throw new Error('讯飞 TTS 环境变量未配置');
     }
-
     const date = new Date().toUTCString();
     const authorization = this.getAuthStr(date, apiKey, apiSecret);
     const wssUrl = `${this.hostUrl}?authorization=${authorization}&date=${encodeURIComponent(date)}&host=${this.host}`;
